@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+*.egg-info/
+.DS_Store
+# OAuth secrets / tokens — never commit
+client_secret*.json
+token.json
+backend/secrets/
+# generated job outputs
+outputs/
+node_modules/
+dist/

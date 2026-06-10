@@ -1,0 +1,12 @@
+# Floors, not pins: lets pip pick releases with prebuilt wheels for your
+# Python version (3.14 here). Re-pin to exact versions once you settle on a
+# deployment target.
+fastapi>=0.115
+uvicorn[standard]>=0.34
+pandas>=2.2
+python-multipart>=0.0.20
+pydantic>=2.10
+# Google Sheets (OAuth, read-only)
+google-auth>=2.37
+google-auth-oauthlib>=1.2
+google-api-python-client>=2.156

@@ -1,0 +1,16 @@
+id,name,email,state,age,signup_date,amount
+1,Alice Smith,alice@example.com,CA,34,2024-01-15,120.50
+2,Bob Jones,bob@example.com,California,28,2024-02-01,80.00
+3,Carol White,carol[at]example.com,NY,41,2024-02-10,95.25
+4,Dave Brown,dave@example.com,calif,,2024-03-05,
+5,Eve Black,eve@example.com,TX,29,2024-03-12,110.00
+6,Frank Green ,frank@example.com,TX,31,2024-04-01,5000.00
+7,Grace Lee,grace@example.com,NY,-5,2024-04-15,75.00
+8,Alice Smith,alice@example.com,CA,34,2024-01-15,120.50
+9,Heidi Ford,heidi@example.com,ca,38,not_a_date,99.99
+10,Ivan Toll,ivan@example.com,TX,27,2024-05-01,abc
+11,Judy Apple,judy@example.com,NY,33,2024-05-10,88.50
+12,Karl Marx,,CA,45,2024-05-20,130.00
+13,Liam Neeson,liam@example.com,TX,52,2024-06-01,150.00
+14,Mia Wong,mia@example.com,California,26,2024-06-05,70.00
+15,Bob Jones,bob@example.com,CA,28,2024-02-01,80.00

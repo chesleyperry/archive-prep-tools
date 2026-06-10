@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(npm -v)",
+      "Bash(../.venv/bin/python tests/test_pipeline.py)",
+      "Bash(../.venv/bin/python -m uvicorn app.main:app --port 8137 --log-level warning)",
+      "Bash(curl -s http://127.0.0.1:8137/health)",
+      "Bash(break)",
+      "Bash(curl -s -X POST http://127.0.0.1:8137/api/analyze/csv -F \"file=@/Users/epsonscanningstation/claude/sample_data/messy.csv\" -F \"key_columns=email\" -o /tmp/resp.json -w \"HTTP %{http_code}\\\\n\")",
+      "Bash(../.venv/bin/python -c \"import json;d=json.load\\(open\\('/tmp/resp.json'\\)\\);print\\('job:',d['job_id'][:8]\\);print\\('rows',d['row_count'],'cols',d['column_count']\\);print\\('issues',len\\(d['issues']\\),'dup groups',len\\(d['duplicate_groups']\\)\\);print\\('checks:',sorted\\({i['check'] for i in d['issues']}\\)\\);print\\('JOBID='+d['job_id']\\)\")",
+      "Bash(tee /tmp/parsed.txt)",
+      "Bash(curl -s http://127.0.0.1:8137/api/jobs/88ad2cf958f24155a3c702439814a65d/readme)",
+      "Bash(curl -s -X DELETE http://127.0.0.1:8137)",
+      "Bash(kill %1)",
+      "Bash(pkill -f \"uvicorn app.main\")"
+    ]
+  }
+}
