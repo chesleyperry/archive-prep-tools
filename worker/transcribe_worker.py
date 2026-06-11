@@ -1,15 +1,14 @@
 """Transcription worker — runs inside the Python 3.12 venv (worker/.venv).
 
-Invoked as a subprocess by the host app with a 16 kHz mono WAV. Uses
-faster-whisper with built-in Silero VAD to drop silence and non-speech, then
-emits a single JSON object on stdout:
+Uses Apple's MLX Whisper (`mlx_whisper`), which runs on the M2 Max GPU/ANE via
+Metal — typically 5-10x faster than CPU faster-whisper. Invoked as a subprocess
+by the host with a 16 kHz mono WAV; emits a single JSON object to the `--out`
+file (NOT stdout, which native libs can pollute):
 
     {"language": "en", "status": "transcribed",
      "segments": [{"start": 0.0, "end": 3.2, "text": "...", "kind": "speech"}]}
 
-status is "transcribed" if any speech was found, else "no_speech". Kept
-dependency-isolated from the host (Python 3.14) so heavy ML wheels never need to
-resolve against the host interpreter.
+status is "transcribed" if any speech text was produced, else "no_speech".
 """
 from __future__ import annotations
 
@@ -17,42 +16,53 @@ import argparse
 import json
 import sys
 
+# Friendly size -> mlx-community Hugging Face repo. A value containing "/" is
+# treated as an explicit repo and passed through unchanged.
+MODEL_REPOS = {
+    "tiny": "mlx-community/whisper-tiny",
+    "base": "mlx-community/whisper-base-mlx",
+    "small": "mlx-community/whisper-small-mlx",
+    "medium": "mlx-community/whisper-medium-mlx",
+    "large-v3": "mlx-community/whisper-large-v3-mlx",
+}
+
+
+def resolve_repo(model: str) -> str:
+    if "/" in model:
+        return model
+    return MODEL_REPOS.get(model, MODEL_REPOS["small"])
+
 
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--audio", required=True, help="path to 16kHz mono WAV")
-    ap.add_argument("--model", default="small", help="whisper model size")
+    ap.add_argument("--model", default="small", help="size (tiny..large-v3) or HF repo")
     ap.add_argument("--language", default=None, help="force language, else auto")
-    ap.add_argument("--compute-type", default="int8")
-    ap.add_argument("--out", default=None,
-                    help="write JSON here instead of stdout (avoids stdout "
-                         "pollution from native libs like Intel MKL)")
+    ap.add_argument("--out", default=None, help="write JSON here instead of stdout")
     args = ap.parse_args()
 
-    from faster_whisper import WhisperModel
+    import mlx_whisper
 
-    model = WhisperModel(args.model, device="cpu", compute_type=args.compute_type)
-    segments_iter, info = model.transcribe(
+    result = mlx_whisper.transcribe(
         args.audio,
+        path_or_hf_repo=resolve_repo(args.model),
         language=args.language,
-        vad_filter=True,                       # Silero VAD: skip silence / non-speech
-        vad_parameters={"min_silence_duration_ms": 500},
     )
 
     segments = []
-    for seg in segments_iter:
-        text = (seg.text or "").strip()
+    for seg in result.get("segments", []):
+        text = (seg.get("text") or "").strip()
         if not text:
             continue
         segments.append({
-            "start": round(seg.start, 3),
-            "end": round(seg.end, 3),
+            "start": round(float(seg["start"]), 3),
+            "end": round(float(seg["end"]), 3),
             "text": text,
             "kind": "speech",
         })
 
     out = {
-        "language": info.language,
+        "language": result.get("language"),
         "status": "transcribed" if segments else "no_speech",
         "segments": segments,
     }

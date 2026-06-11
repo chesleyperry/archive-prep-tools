@@ -1,13 +1,24 @@
 #!/usr/bin/env bash
 # Create the Python 3.12 transcription worker venv and install its deps.
-# faster-whisper / ctranslate2 lack reliable wheels for the host's Python 3.14,
-# so the worker runs in its own 3.12 interpreter (see ../requirements.txt).
+# Two hard requirements on this machine:
+#   1. Python 3.12, not the host's 3.14 — faster-whisper/mlx wheels lag 3.14.
+#   2. NATIVE arm64, not the x86_64 (Rosetta) Homebrew python at /usr/local —
+#      mlx-whisper is Apple-Silicon-only and won't install under x86_64.
+# So we default to the arm64 Homebrew python at /opt/homebrew.
 set -euo pipefail
 cd "$(dirname "$0")"
 
-PYTHON="${PYTHON:-python3.12}"
+PYTHON="${PYTHON:-/opt/homebrew/bin/python3.12}"
 if ! command -v "$PYTHON" >/dev/null 2>&1; then
-  echo "error: $PYTHON not found. Install Python 3.12 or set PYTHON=..." >&2
+  echo "error: $PYTHON not found. Install it with:" >&2
+  echo "  arch -arm64 /opt/homebrew/bin/brew install python@3.12" >&2
+  echo "or set PYTHON=/path/to/arm64/python3.12" >&2
+  exit 1
+fi
+
+ARCH="$("$PYTHON" -c 'import platform; print(platform.machine())')"
+if [ "$ARCH" != "arm64" ]; then
+  echo "error: $PYTHON is $ARCH, but mlx-whisper needs native arm64." >&2
   exit 1
 fi
 

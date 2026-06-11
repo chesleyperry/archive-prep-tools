@@ -1,4 +1,7 @@
-# Transcription worker deps — installed into worker/.venv (Python 3.12).
-# Kept separate from the host so heavy ML wheels never resolve against the
-# host's Python 3.14 (see ../requirements.txt and the dev-env note).
-faster-whisper>=1.1
+# Transcription worker deps — installed into worker/.venv (native arm64 Python 3.12).
+# Kept separate from the host (Python 3.14) so heavy ML wheels never resolve
+# against it. See ../requirements.txt, setup.sh, and the dev-env note.
+#
+# mlx-whisper runs Whisper on the Apple-Silicon GPU/ANE via Metal — much faster
+# than CPU faster-whisper, and the reason the venv MUST be native arm64.
+mlx-whisper>=0.4
