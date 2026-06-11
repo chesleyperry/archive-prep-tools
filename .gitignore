@@ -11,5 +11,8 @@ token.json
 backend/secrets/
 # generated job outputs
 outputs/
+# Merritt harvest outputs (private collection metadata)
+merritt_collection.json
+merritt_collection.csv
 node_modules/
 dist/

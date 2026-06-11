@@ -15,6 +15,7 @@ from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from app import ingest
+from app.av import jobs as av_jobs
 from app.pipeline import AnalysisResult, analyze
 
 app = FastAPI(title="Data-Prep Tool", version="0.1.0")
@@ -110,6 +111,60 @@ def download_cleaned(job_id: str):
         content=result.cleaned_csv,
         media_type="text/csv",
         headers={"Content-Disposition": 'attachment; filename="cleaned.csv"'},
+    )
+
+
+# ---- AV File Access Preparation ----------------------------------------------
+
+@app.post("/api/av/batch")
+async def av_start_batch(
+    input_dir: str = Form(...),
+    output_dir: str = Form(...),
+    id_column: str = Form(default="localIdentifier"),
+    whisper_model: str = Form(default="small"),
+    enrich_model: str = Form(default="qwen2.5:latest"),
+    file: UploadFile | None = None,
+):
+    """Start a batch over a local media directory. Returns a job id to poll."""
+    if not Path(input_dir).is_dir():
+        raise HTTPException(400, f"Input directory not found: {input_dir}")
+    csv_bytes = await file.read() if file is not None else None
+    job_id = av_jobs.start_job(
+        input_dir=input_dir,
+        output_dir=output_dir,
+        csv_bytes=csv_bytes,
+        id_column=id_column,
+        whisper_model=whisper_model,
+        enrich_model=enrich_model,
+    )
+    return {"job_id": job_id}
+
+
+@app.get("/api/av/batch/{job_id}")
+def av_progress(job_id: str):
+    job = av_jobs.get(job_id)
+    if job is None:
+        raise HTTPException(404, "Unknown or expired job id.")
+    return job.progress()
+
+
+@app.post("/api/av/batch/{job_id}/cancel")
+def av_cancel(job_id: str):
+    if not av_jobs.cancel(job_id):
+        raise HTTPException(404, "Job not found or not cancellable.")
+    return {"status": "cancelling"}
+
+
+@app.get("/api/av/batch/{job_id}/csv")
+def av_download_csv(job_id: str):
+    job = av_jobs.get(job_id)
+    if job is None or not job.csv_path:
+        raise HTTPException(404, "No metadata CSV available yet.")
+    path = Path(job.csv_path)
+    return Response(
+        content=path.read_bytes(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{path.name}"'},
     )
 
 

@@ -1,0 +1,4 @@
+# Transcription worker deps — installed into worker/.venv (Python 3.12).
+# Kept separate from the host so heavy ML wheels never resolve against the
+# host's Python 3.14 (see ../requirements.txt and the dev-env note).
+faster-whisper>=1.1
