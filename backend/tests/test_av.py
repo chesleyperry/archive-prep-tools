@@ -41,6 +41,17 @@ def test_build_prompt_includes_existing():
     assert "creator:" not in p              # empty values omitted from metadata
 
 
+def test_build_prompt_includes_known_entities():
+    p = build_prompt("hello", known_entities="Santa Cruz\nKenneth Patchen")
+    assert "KNOWN ENTITIES" in p
+    assert "Kenneth Patchen" in p
+
+
+def test_build_prompt_omits_known_entities_when_blank():
+    p = build_prompt("hello", known_entities="   ")
+    assert "KNOWN ENTITIES" not in p
+
+
 # ---- transcript serialization ------------------------------------------------
 
 def test_srt_timestamp():
@@ -108,6 +119,30 @@ def test_merge_rejects_missing_join_column():
         assert False, "expected ValueError"
     except ValueError as e:
         assert "not found" in str(e)
+
+
+def test_merge_includes_duration():
+    from app.av.probe import format_duration
+    original = pd.DataFrame(
+        {"localIdentifier": ["a"], "title": ["T1"]}
+    ).astype("string")
+    r = FileResult(
+        local_identifier="a", source_path="/m/a.mp4",
+        status=TranscriptStatus.TRANSCRIBED,
+        enrichment=Enrichment(),
+        duration_seconds=125.0,   # 2:05
+    )
+    merged = merge_results(original, [r], id_column="localIdentifier")
+    assert "duration" in merged.columns
+    assert merged.loc[merged["localIdentifier"] == "a", "duration"].iloc[0] == "2:05"
+
+
+def test_format_duration():
+    from app.av.probe import format_duration
+    assert format_duration(None) == ""
+    assert format_duration(65.0) == "1:05"
+    assert format_duration(3661.0) == "1:01:01"
+    assert format_duration(0.0) == "0:00"
 
 
 def test_output_filename_format():

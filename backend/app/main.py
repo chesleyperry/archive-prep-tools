@@ -123,6 +123,7 @@ async def av_start_batch(
     id_column: str = Form(default="localIdentifier"),
     whisper_model: str = Form(default="small"),
     enrich_model: str = Form(default="qwen2.5:latest"),
+    known_entities: str = Form(default=""),
     file: UploadFile | None = None,
 ):
     """Start a batch over a local media directory. Returns a job id to poll."""
@@ -136,6 +137,7 @@ async def av_start_batch(
         id_column=id_column,
         whisper_model=whisper_model,
         enrich_model=enrich_model,
+        known_entities=known_entities,
     )
     return {"job_id": job_id}
 

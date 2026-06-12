@@ -13,11 +13,13 @@ import io
 import pandas as pd
 
 from app.av.models import Enrichment, FileResult
+from app.av.probe import format_duration
 
 DEFAULT_ID_COLUMN = "localIdentifier"
 
 # New columns this tool adds. Order = column order in the output CSV.
 NEW_COLUMNS = [
+    "duration",
     "suggested_title",
     "suggested_date",
     "content_description",
@@ -36,6 +38,7 @@ def results_to_frame(results: list[FileResult], id_column: str) -> pd.DataFrame:
         e = r.enrichment or Enrichment()
         rows.append({
             id_column: r.local_identifier,
+            "duration": format_duration(r.duration_seconds),
             "suggested_title": e.suggested_title,
             "suggested_date": e.suggested_date,
             "content_description": e.content_description,

@@ -64,6 +64,7 @@ class FileResult:
     enrichment: Enrichment | None = None
     outputs: list[str] = field(default_factory=list)   # written file paths
     error: str | None = None
+    duration_seconds: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -74,4 +75,5 @@ class FileResult:
             "enrichment": self.enrichment.to_dict() if self.enrichment else None,
             "outputs": self.outputs,
             "error": self.error,
+            "duration_seconds": self.duration_seconds,
         }

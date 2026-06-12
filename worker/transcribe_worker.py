@@ -27,6 +27,24 @@ MODEL_REPOS = {
 }
 
 
+def _is_music(seg: dict) -> bool:
+    """True if a Whisper segment looks like singing or non-speech audio.
+
+    Uses three signals that Whisper already computes:
+    - no_speech_prob > 0.6: Whisper itself doubts this is speech
+    - musical note characters (♪ ♫) in the transcribed text
+    - compression_ratio > 2.4: highly repetitive text (common music artifact)
+    """
+    text = (seg.get("text") or "").strip()
+    if seg.get("no_speech_prob", 0.0) > 0.6:
+        return True
+    if "♪" in text or "♫" in text:
+        return True
+    if seg.get("compression_ratio", 0.0) > 2.4:
+        return True
+    return False
+
+
 def resolve_repo(model: str) -> str:
     if "/" in model:
         return model
@@ -52,18 +70,36 @@ def main() -> int:
     segments = []
     for seg in result.get("segments", []):
         text = (seg.get("text") or "").strip()
-        if not text:
-            continue
-        segments.append({
-            "start": round(float(seg["start"]), 3),
-            "end": round(float(seg["end"]), 3),
-            "text": text,
-            "kind": "speech",
-        })
+        if _is_music(seg):
+            # Keep a placeholder so the host knows a music span exists here.
+            segments.append({
+                "start": round(float(seg["start"]), 3),
+                "end": round(float(seg["end"]), 3),
+                "text": "",
+                "kind": "music",
+            })
+        elif text:
+            segments.append({
+                "start": round(float(seg["start"]), 3),
+                "end": round(float(seg["end"]), 3),
+                "text": text,
+                "kind": "speech",
+            })
+
+    speech = sum(1 for s in segments if s["kind"] == "speech")
+    music = sum(1 for s in segments if s["kind"] == "music")
+    if speech and music:
+        status = "partial"
+    elif speech:
+        status = "transcribed"
+    elif music:
+        status = "music_only"
+    else:
+        status = "no_speech"
 
     out = {
         "language": result.get("language"),
-        "status": "transcribed" if segments else "no_speech",
+        "status": status,
         "segments": segments,
     }
     if args.out:

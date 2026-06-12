@@ -74,6 +74,38 @@ def discover_media(input_dir: str | Path) -> list[Path]:
     )
 
 
+def get_duration(path: str | Path) -> float | None:
+    """Return the recording length in seconds via ffprobe, or None on failure."""
+    proc = subprocess.run(
+        [
+            "ffprobe", "-v", "error",
+            "-show_entries", "format=duration",
+            "-of", "json",
+            str(path),
+        ],
+        capture_output=True, text=True,
+    )
+    if proc.returncode != 0:
+        return None
+    try:
+        dur = json.loads(proc.stdout or "{}").get("format", {}).get("duration")
+        return float(dur) if dur is not None else None
+    except (json.JSONDecodeError, ValueError, TypeError):
+        return None
+
+
+def format_duration(seconds: float | None) -> str:
+    """Format seconds as H:MM:SS (or M:SS for clips under an hour)."""
+    if seconds is None:
+        return ""
+    s = round(seconds)
+    h, rem = divmod(s, 3600)
+    m, sec = divmod(rem, 60)
+    if h:
+        return f"{h}:{m:02d}:{sec:02d}"
+    return f"{m}:{sec:02d}"
+
+
 def local_identifier(path: str | Path) -> str:
     """The unique ID = filename without extension."""
     return Path(path).stem

@@ -24,6 +24,7 @@ def process_file(
     whisper_model: str = "small",
     enrich_model: str = DEFAULT_MODEL,
     language: str | None = None,
+    known_entities: str = "",
 ) -> FileResult:
     """Run the full pipeline for one media file and write its derivatives.
 
@@ -38,6 +39,7 @@ def process_file(
         local_identifier=lid,
         source_path=str(media_path),
         status=TranscriptStatus.NO_AUDIO,
+        duration_seconds=probe.get_duration(media_path),
     )
 
     transcript_text = ""
@@ -52,14 +54,23 @@ def process_file(
 
             result.segments = tr.segments
             result.language = tr.language
-            if tr.status == "transcribed" and tr.segments:
-                result.status = TranscriptStatus.TRANSCRIBED
-                transcript_text = " ".join(s.text for s in tr.segments).strip()
+
+            speech_segs = [s for s in tr.segments if s.kind == "speech"]
+            music_segs = [s for s in tr.segments if s.kind == "music"]
+
+            if speech_segs:
+                if music_segs:
+                    result.status = TranscriptStatus.PARTIAL
+                else:
+                    result.status = TranscriptStatus.TRANSCRIBED
+                transcript_text = " ".join(s.text for s in speech_segs).strip()
                 srt = out_dir / f"{lid}_transcript.srt"
                 rtf = out_dir / f"{lid}_transcript.rtf"
-                srt.write_text(transcribe.to_srt(tr.segments), encoding="utf-8")
-                rtf.write_text(transcribe.to_rtf(tr.segments), encoding="utf-8")
+                srt.write_text(transcribe.to_srt(speech_segs), encoding="utf-8")
+                rtf.write_text(transcribe.to_rtf(speech_segs), encoding="utf-8")
                 result.outputs += [str(srt), str(rtf)]
+            elif music_segs:
+                result.status = TranscriptStatus.MUSIC_ONLY
             else:
                 result.status = TranscriptStatus.NO_SPEECH
     except Exception as exc:  # transcription failure is per-file, not fatal
@@ -68,13 +79,15 @@ def process_file(
         return result
 
     # Enrichment is best-effort: a failure here must not discard transcript files.
+    # content_description goes into the CSV only — no separate summary file is written.
     try:
-        e = enrich(transcript_text, existing=existing, model=enrich_model)
+        e = enrich(
+            transcript_text,
+            existing=existing,
+            model=enrich_model,
+            known_entities=known_entities,
+        )
         result.enrichment = e
-        if e.content_description:
-            summary = out_dir / f"{lid}_summary.txt"
-            summary.write_text(e.content_description, encoding="utf-8")
-            result.outputs.append(str(summary))
     except requests.RequestException as exc:
         result.enrichment = Enrichment()
         result.error = f"enrichment failed: {exc}"

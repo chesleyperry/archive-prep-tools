@@ -28,6 +28,7 @@ async function start() {
   form.append("id_column", $("idColumn").value.trim() || "localIdentifier");
   form.append("whisper_model", $("whisperModel").value);
   form.append("enrich_model", $("enrichModel").value.trim() || "qwen2.5:latest");
+  form.append("known_entities", $("knownEntities").value.trim());
   const csv = $("csv").files[0];
   if (csv) form.append("file", csv);
 

@@ -43,12 +43,22 @@ def _strip_attribution(title: str) -> str:
     return _POSSESSIVE.sub("", title.strip()).strip()
 
 
-def build_prompt(transcript: str, existing: dict[str, str] | None = None) -> str:
+def build_prompt(
+    transcript: str,
+    existing: dict[str, str] | None = None,
+    known_entities: str = "",
+) -> str:
     parts = [_SYSTEM, ""]
     if existing:
         meta = "; ".join(f"{k}: {v}" for k, v in existing.items() if v)
         if meta:
             parts += ["EXISTING METADATA:", meta, ""]
+    if known_entities.strip():
+        parts += [
+            "KNOWN ENTITIES (prefer these exact spellings when you recognize them):",
+            known_entities.strip(),
+            "",
+        ]
     parts += ["TRANSCRIPT:", transcript.strip() or "(no speech / empty transcript)"]
     return "\n".join(parts)
 
@@ -79,6 +89,7 @@ def enrich(
     model: str = DEFAULT_MODEL,
     url: str = OLLAMA_URL,
     timeout: float = 120.0,
+    known_entities: str = "",
 ) -> Enrichment:
     """Call the local model and return structured metadata.
 
@@ -87,7 +98,7 @@ def enrich(
     """
     payload = {
         "model": model,
-        "prompt": build_prompt(transcript, existing),
+        "prompt": build_prompt(transcript, existing, known_entities),
         "stream": False,
         "format": "json",
         "options": {"temperature": 0},

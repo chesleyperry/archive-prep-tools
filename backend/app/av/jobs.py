@@ -29,6 +29,7 @@ class Job:
     id_column: str = DEFAULT_ID_COLUMN
     whisper_model: str = "small"
     enrich_model: str = DEFAULT_MODEL
+    known_entities: str = ""
     status: str = "queued"        # queued|running|done|cancelled|error
     total: int = 0
     completed: int = 0
@@ -76,6 +77,7 @@ def start_job(
     id_column: str = DEFAULT_ID_COLUMN,
     whisper_model: str = "small",
     enrich_model: str = DEFAULT_MODEL,
+    known_entities: str = "",
 ) -> str:
     job = Job(
         id=uuid.uuid4().hex,
@@ -84,6 +86,7 @@ def start_job(
         id_column=id_column,
         whisper_model=whisper_model,
         enrich_model=enrich_model,
+        known_entities=known_entities,
     )
     _JOBS[job.id] = job
     _ORDER.append(job.id)
@@ -141,6 +144,7 @@ def _run(job: Job, csv_bytes: bytes | None) -> None:
                 output_dir=job.output_dir,
                 whisper_model=job.whisper_model,
                 enrich_model=job.enrich_model,
+                known_entities=job.known_entities,
             )
             job.results.append(res)
             job.completed += 1
