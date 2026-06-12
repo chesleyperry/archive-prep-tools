@@ -170,6 +170,26 @@ def av_download_csv(job_id: str):
     )
 
 
+@app.get("/api/browse")
+def browse_directory(path: str | None = None):
+    """Return subdirectories of a given path for the directory-picker UI."""
+    base = Path(path).expanduser().resolve() if path else Path.home()
+    if not base.is_dir():
+        raise HTTPException(400, f"Not a directory: {path}")
+    try:
+        dirs = sorted(
+            (d for d in base.iterdir() if d.is_dir() and not d.name.startswith(".")),
+            key=lambda d: d.name.lower(),
+        )
+        return {
+            "path": str(base),
+            "parent": str(base.parent) if base.parent != base else None,
+            "dirs": [{"name": d.name, "path": str(d)} for d in dirs],
+        }
+    except PermissionError:
+        raise HTTPException(403, "Permission denied reading that folder.")
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "version": app.version}
