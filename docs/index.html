@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Archive Prep Tools — UC Santa Cruz University Library</title>
+  <style>
+    :root {
+      --navy: #003C6C;
+      --navy-dk: #002850;
+      --gold: #FDB827;
+      --bg: #F4F6F8;
+      --card: #ffffff;
+      --ink: #1a1a1a;
+      --muted: #5f6b7a;
+      --border: #d1d5db;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font: 16px/1.7 system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+
+    /* header */
+    .site-header { background: var(--navy); color: #fff; padding: 20px 0; }
+    .site-header .inner { max-width: 900px; margin: 0 auto; padding: 0 32px; }
+    .wordmark { font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+                color: rgba(255,255,255,.6); margin-bottom: 6px; }
+    .site-header h1 { font-size: 26px; font-weight: 700; color: #fff; }
+    .site-header h1 span { color: var(--gold); }
+    .site-header p { color: rgba(255,255,255,.8); margin-top: 6px; font-size: 15px; max-width: 640px; }
+    .header-links { margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap; }
+    .header-links a { display: inline-block; padding: 8px 16px; border-radius: 6px;
+                      font-size: 13px; font-weight: 600; text-decoration: none; }
+    .btn-primary { background: var(--gold); color: #1a1a1a; }
+    .btn-primary:hover { background: #e5a820; }
+    .btn-secondary { background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.3); }
+    .btn-secondary:hover { background: rgba(255,255,255,.2); }
+
+    /* layout */
+    .content { max-width: 900px; margin: 0 auto; padding: 48px 32px 80px; }
+    section { margin-bottom: 56px; }
+    h2 { font-size: 20px; font-weight: 700; color: var(--navy); margin-bottom: 16px;
+         padding-bottom: 8px; border-bottom: 2px solid var(--gold); display: inline-block; }
+    h3 { font-size: 16px; font-weight: 700; color: var(--navy); margin: 24px 0 8px; }
+    p { margin-bottom: 12px; color: var(--ink); }
+    ul { padding-left: 20px; margin-bottom: 12px; }
+    li { margin-bottom: 6px; }
+
+    /* screenshot */
+    .screenshot { margin: 24px 0; border-radius: 10px; overflow: hidden;
+                  border: 1px solid var(--border); box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+    .screenshot img { display: block; width: 100%; height: auto; }
+    .screenshot-caption { background: var(--card); border-top: 1px solid var(--border);
+                          padding: 10px 16px; font-size: 13px; color: var(--muted); }
+
+    /* steps */
+    .steps { counter-reset: step; display: flex; flex-direction: column; gap: 16px; margin-top: 20px; }
+    .step { display: flex; gap: 16px; align-items: flex-start;
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 10px; padding: 16px 20px; }
+    .step-num { counter-increment: step; content: counter(step);
+                background: var(--navy); color: #fff; border-radius: 50%;
+                width: 28px; height: 28px; flex-shrink: 0;
+                display: flex; align-items: center; justify-content: center;
+                font-size: 13px; font-weight: 700; margin-top: 2px; }
+    .step-body strong { display: block; color: var(--navy); margin-bottom: 4px; }
+    .step-body p { margin: 0; font-size: 14px; color: var(--muted); }
+
+    /* sample output table */
+    .table-wrap { overflow-x: auto; margin-top: 20px; border-radius: 10px;
+                  border: 1px solid var(--border); box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--card); }
+    th { background: var(--navy); color: #fff; text-align: left;
+         padding: 10px 12px; font-weight: 600; font-size: 12px; letter-spacing: .03em; }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8f9fb; }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 99px;
+            font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .pill-partial { background: rgba(146,64,14,.12); color: #92400e; }
+    .pill-ok { background: rgba(21,128,61,.12); color: #15803d; }
+    .entities { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .file-link { color: var(--navy); font-size: 12px; display: block; }
+
+    /* tools grid */
+    .tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+                  gap: 16px; margin-top: 20px; }
+    .tool-card { background: var(--card); border: 1px solid var(--border);
+                 border-radius: 10px; padding: 20px; }
+    .tool-card .tag { display: inline-block; font-size: 11px; font-weight: 700;
+                      letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px;
+                      border-radius: 99px; margin-bottom: 10px; }
+    .tag-web { background: rgba(0,60,108,.1); color: var(--navy); }
+    .tag-cli { background: rgba(253,184,39,.2); color: #7A4B00; }
+    .tool-card h3 { margin: 0 0 8px; font-size: 15px; color: var(--navy); }
+    .tool-card p { font-size: 13px; color: var(--muted); margin: 0; }
+
+    /* footer */
+    footer { background: var(--navy); color: rgba(255,255,255,.65); padding: 28px 32px;
+             font-size: 13px; text-align: center; }
+    footer a { color: var(--gold); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="inner">
+    <div class="wordmark">University Library Digital Scholarship &nbsp;|&nbsp; University of California Santa Cruz</div>
+    <h1>Archive Prep <span>Tools</span></h1>
+    <p>A local suite for preparing audiovisual and tabular archive materials for access. No audio or data is sent to any outside service — everything runs on your own Mac.</p>
+    <div class="header-links">
+      <a class="btn-primary" href="https://github.com/chesleyperry/archive-prep-tools">View on GitHub →</a>
+      <a class="btn-secondary" href="https://github.com/chesleyperry/archive-prep-tools#readme">Setup instructions</a>
+    </div>
+  </div>
+</header>
+
+<div class="content">
+
+  <section>
+    <h2>The tools</h2>
+    <div class="tools-grid">
+      <div class="tool-card">
+        <span class="tag tag-web">Web tool</span>
+        <h3>AV File Access Preparation</h3>
+        <p>Transcribes a folder of audio/video, writes a content description and transcript (SRT/RTF) per file, extracts named entities, and builds one enriched metadata CSV. Recognizes and skips sung lyrics in music performances.</p>
+      </div>
+      <div class="tool-card">
+        <span class="tag tag-web">Web tool</span>
+        <h3>Data-Prep Tool</h3>
+        <p>Checks a CSV or Google Sheet for quality problems, plans duplicate merges, and generates a README and data dictionary. Your original file is never modified.</p>
+      </div>
+      <div class="tool-card">
+        <span class="tag tag-cli">Command line</span>
+        <h3>Merritt Harvester</h3>
+        <p>Pulls collection metadata from a private UC Merritt collection into CSV and JSON using a session cookie from your browser.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>AV File Access Preparation — workflow</h2>
+    <p>Point the tool at a folder of audio or video files and an optional metadata spreadsheet. It works through each file automatically and produces transcripts, descriptions, and an enriched CSV — all locally.</p>
+
+    <div class="screenshot">
+      <img src="screenshots/hub.png" alt="Archive Prep Tools home page showing all three tool cards" />
+      <div class="screenshot-caption">The home page, served locally at http://127.0.0.1:8000 — start here to reach any tool.</div>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Choose your folders</strong>
+          <p>Click Browse to navigate to the folder of .mp3 / .mp4 files, and choose where the outputs should go. You can also drag a folder onto the field.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Upload your metadata spreadsheet (optional)</strong>
+          <p>If you have an existing CSV, upload it. The tool matches rows to filenames by the <code>localIdentifier</code> column (filename without extension) and adds new columns without changing your originals. If no matching column is found, file results are appended as new rows.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Add known names and places (optional)</strong>
+          <p>Type any names, places, or titles the AI should watch for — one per line or comma-separated. These are spelling hints only; entities are only listed if they actually appear in the recording.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Click Start batch</strong>
+          <p>A progress bar tracks each file. The tool transcribes speech (skipping sung lyrics), writes SRT and RTF transcript files, and calls the local Ollama AI to extract a 3-sentence description and named entities. Results update as each file completes.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <strong>Download the enriched CSV</strong>
+          <p>The output CSV adds these new columns to your original: <strong>duration, suggested_title, suggested_date, content_description, persons, places, music_titles, poem_titles, book_titles, transcript_status</strong>.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screenshot" style="margin-top:32px">
+      <img src="screenshots/form.png" alt="AV File Access Preparation form with directory fields, CSV upload, and known entities box" />
+      <div class="screenshot-caption">The AV tool form. Use Browse… to navigate your drive, or drag a folder directly onto the path field.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Sample output</h2>
+    <p>Below is a representative example from a batch run against two UCSC archive recordings. The tool identified that one recording contained both speech and music and skipped the sung portions.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>localIdentifier</th>
+            <th>Status</th>
+            <th>Suggested title</th>
+            <th>Description &amp; entities</th>
+            <th>Duration</th>
+            <th>Output files</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>LCD11224</strong></td>
+            <td><span class="pill pill-partial">partial — music segments skipped</span></td>
+            <td>Celebration of Big Creek Reserve Acquisition</td>
+            <td>
+              The Chancellor of the University of California at Santa Cruz and other notable figures celebrate the acquisition of Big Creek Reserve by the university in partnership with the Nature Conservancy and Save the Redwoods League.
+              <div class="entities">
+                persons: Bob Sinsheimer, Ansel Adams, Kenneth Norris, Margaret Owings, Frank Barne<br>
+                places: Big Creek Reserve, California, University of California at Santa Cruz, Save the Redwoods League
+              </div>
+            </td>
+            <td>—</td>
+            <td>
+              <span class="file-link">LCD11224_transcript.srt</span>
+              <span class="file-link">LCD11224_transcript.rtf</span>
+            </td>
+          </tr>
+          <tr>
+            <td><strong>VT577_640x480</strong></td>
+            <td><span class="pill pill-ok">transcribed</span></td>
+            <td>Inaugural Lecture: Simulations, Stereotypes, and Post-Modern Interpretations · 1987</td>
+            <td>
+              The lecture discusses Professor Gerald Vizenor's academic journey, his contributions to American Indian literature, and critiques the simulations and stereotypes of Native Americans in popular culture and academia. It also explores post-modern interpretations of tribal literatures and their significance.
+              <div class="entities">persons: Gerald Vizenor</div>
+            </td>
+            <td>—</td>
+            <td>
+              <span class="file-link">VT577_640x480_transcript.srt</span>
+              <span class="file-link">VT577_640x480_transcript.rtf</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Privacy and security</h2>
+    <ul>
+      <li><strong>All processing is local.</strong> No audio, video, or text is sent to any external service. Transcription runs on the Mac's Apple Silicon GPU via MLX Whisper. Summaries and entity extraction use a locally installed Ollama model.</li>
+      <li><strong>Your original files are never changed.</strong> The tool reads media files and writes new output files alongside them. Your spreadsheet is only read — a new enriched CSV is written separately.</li>
+      <li><strong>Runs on your own machine.</strong> The web interface is served at <code>http://127.0.0.1:8000</code> — a local address only your computer can reach.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Requirements and setup</h2>
+    <p>The tools run on a Mac with Apple Silicon (M1 or later). Required:</p>
+    <ul>
+      <li><strong>Homebrew</strong> — <a href="https://brew.sh">brew.sh</a></li>
+      <li><strong>ffmpeg</strong> — <code>brew install ffmpeg</code></li>
+      <li><strong>Python 3.12 (arm64)</strong> — <code>arch -arm64 /opt/homebrew/bin/brew install python@3.12</code></li>
+      <li><strong>Ollama</strong> — download from <a href="https://ollama.com">ollama.com</a>, then run <code>ollama pull qwen2.5</code></li>
+    </ul>
+    <p>Full setup instructions, including the one-time <code>./setup.sh</code> script, are in the <a href="https://github.com/chesleyperry/archive-prep-tools#readme">README on GitHub</a>.</p>
+  </section>
+
+</div>
+
+<footer>
+  <p>University Library Digital Scholarship &nbsp;·&nbsp; University of California Santa Cruz</p>
+  <p style="margin-top:6px"><a href="https://github.com/chesleyperry/archive-prep-tools">github.com/chesleyperry/archive-prep-tools</a></p>
+</footer>
+
+</body>
+</html>
