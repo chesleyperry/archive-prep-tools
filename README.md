@@ -12,6 +12,10 @@ runs **locally on your own Mac** — your files and audio never leave the machin
 The two web tools share one web server and one home page; the Merritt harvester is
 a Terminal script.
 
+The tools were created with Claude Code AI, though they run locally and do not submit any recordings, collection materials, or metadata to Claude.  They were created during the **DH Programming Pedagogy in the Age of AI** course during DHSI 2026, taught by Anastasia Salter & John T. Murray, June 8–12, Montréal.
+
+
+
 ---
 
 ## 1. One-time setup
