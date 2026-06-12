@@ -98,11 +98,11 @@ function openBrowser(inputId) {
   _browserTarget = inputId;
   const current = $(inputId).value.trim();
   loadDir(current || null);
-  $("browserModal").classList.remove("hidden");
+  $("browserModal").style.display = "flex";
 }
 
 function closeBrowser() {
-  $("browserModal").classList.add("hidden");
+  $("browserModal").style.display = "none";
 }
 
 function selectCurrentDir() {
@@ -163,18 +163,8 @@ function onDragLeave(e) {
 function onDrop(e, inputId) {
   e.preventDefault();
   e.currentTarget.classList.remove("drag-over");
-
-  // macOS Finder drag gives a file:// URI in text/uri-list or text/plain.
-  const raw = e.dataTransfer.getData("text/uri-list") ||
-              e.dataTransfer.getData("text/plain") || "";
-  const firstLine = raw.split("\n").find((l) => l.trim() && !l.startsWith("#"));
-  if (firstLine) {
-    let path = firstLine.trim();
-    if (path.startsWith("file://")) path = decodeURIComponent(path.replace(/^file:\/\//, ""));
-    if (path.startsWith("/")) { $(inputId).value = path; return; }
-  }
-
-  // If we couldn't get a path from the drag data, open the browse modal instead.
+  // Browsers don't share the full filesystem path of a dragged folder,
+  // so we open the browse modal to let the user navigate there.
   openBrowser(inputId);
 }
 

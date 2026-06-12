@@ -142,8 +142,8 @@
     <div id="results" class="hidden"></div>
   </main>
 
-  <!-- Directory browser modal -->
-  <div id="browserModal" class="modal-overlay hidden" onclick="if(event.target===this)closeBrowser()">
+  <!-- Directory browser modal (display toggled via JS style, not .hidden, to avoid CSS cascade conflict) -->
+  <div id="browserModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeBrowser()">
     <div class="modal-card">
       <div class="modal-header">
         <strong>Choose a folder</strong>
