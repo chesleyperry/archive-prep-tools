@@ -128,17 +128,21 @@ function renderDir(data) {
   $("browserPath").textContent = data.path;
   let html = "";
   if (data.parent) {
-    html += `<div class="modal-item" onclick="loadDir(${JSON.stringify(data.parent)})">
+    html += `<div class="modal-item" data-nav="${esc(data.parent)}">
       <span class="icon">↑</span><span class="muted">Go up</span></div>`;
   }
   if (!data.dirs.length) {
     html += `<div style="padding:12px 18px;color:var(--muted);font-size:13px;">No subfolders here.</div>`;
   }
   for (const d of data.dirs) {
-    html += `<div class="modal-item" onclick="loadDir(${JSON.stringify(d.path)})">
+    html += `<div class="modal-item" data-nav="${esc(d.path)}">
       <span class="icon">📁</span>${esc(d.name)}</div>`;
   }
   $("browserList").innerHTML = html;
+  // Attach click handlers after inserting HTML so paths with quotes/slashes are safe.
+  $("browserList").querySelectorAll("[data-nav]").forEach((el) =>
+    el.addEventListener("click", () => loadDir(el.dataset.nav))
+  );
 }
 
 function renderDirError(msg) {
