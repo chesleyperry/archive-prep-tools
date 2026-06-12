@@ -55,7 +55,9 @@ def build_prompt(
             parts += ["EXISTING METADATA:", meta, ""]
     if known_entities.strip():
         parts += [
-            "KNOWN ENTITIES (prefer these exact spellings when you recognize them):",
+            "KNOWN ENTITIES — spelling guide only. Use these exact spellings IF the entity"
+            " appears in the transcript. Do NOT include any entity that is not actually"
+            " mentioned in the transcript.",
             known_entities.strip(),
             "",
         ]

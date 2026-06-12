@@ -61,18 +61,21 @@ def merge_results(
     """Return ``original`` with the new columns joined on ``id_column``.
 
     The original columns and row order are preserved; new columns are appended.
+    If the CSV has no column named ``id_column`` (e.g. a different spreadsheet
+    format), file results are appended as new rows rather than raising an error.
     """
+    new_df = results_to_frame(results, id_column)
+
     if id_column not in original.columns:
-        raise ValueError(
-            f"Join column '{id_column}' not found in CSV (have: "
-            f"{', '.join(original.columns)})."
-        )
+        # Can't match on the join column — keep original data intact and
+        # append all file results below it so nothing is lost.
+        return pd.concat([original, new_df], ignore_index=True)
+
     # Guard against accidental overwrite if a new column name already exists.
     collisions = [c for c in NEW_COLUMNS if c in original.columns]
     if collisions:
         raise ValueError(f"CSV already contains tool columns: {', '.join(collisions)}")
 
-    new_df = results_to_frame(results, id_column)
     merged = original.merge(new_df, on=id_column, how="left")
 
     matched = set(original[id_column].dropna())

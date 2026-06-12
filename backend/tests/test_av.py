@@ -112,13 +112,16 @@ def test_merge_appends_unmatched_files_as_new_rows():
     assert pd.isna(orphan["title"].iloc[0])     # no original data for new row
 
 
-def test_merge_rejects_missing_join_column():
-    original = pd.DataFrame({"id": ["a"]}).astype("string")
-    try:
-        merge_results(original, [_result("a")], id_column="localIdentifier")
-        assert False, "expected ValueError"
-    except ValueError as e:
-        assert "not found" in str(e)
+def test_merge_graceful_when_join_column_missing():
+    # If the CSV has no localIdentifier column, file results are appended as
+    # new rows rather than raising an error — original data is preserved.
+    original = pd.DataFrame({"LCD10760": ["somevalue"], "title": ["T1"]}).astype("string")
+    results = [_result("recording1", suggested_title="A Title")]
+    merged = merge_results(original, results, id_column="localIdentifier")
+    assert "localIdentifier" in merged.columns
+    assert "LCD10760" in merged.columns
+    assert "recording1" in merged["localIdentifier"].values
+    assert "T1" in merged["title"].values
 
 
 def test_merge_includes_duration():
