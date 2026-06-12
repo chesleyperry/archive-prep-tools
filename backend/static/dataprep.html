@@ -5,44 +5,56 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Data-Prep Tool</title>
   <style>
-    :root { --bg:#0f172a; --card:#1e293b; --ink:#e2e8f0; --muted:#94a3b8;
-            --accent:#38bdf8; --warn:#fbbf24; --err:#f87171; --ok:#4ade80; }
-    * { box-sizing: border-box; }
-    body { margin:0; font:15px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--ink); }
-    header { padding:24px 32px; border-bottom:1px solid #334155; }
-    h1 { margin:0; font-size:20px; } h1 span { color:var(--accent); }
+    :root { --navy:#003C6C; --navy-dk:#002850; --gold:#FDB827;
+            --bg:#F4F6F8; --card:#ffffff; --ink:#1a1a1a; --muted:#5f6b7a;
+            --border:#d1d5db; --err:#b91c1c; --ok:#15803d; --warn:#92400e; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:15px/1.5 system-ui,sans-serif; background:var(--bg); color:var(--ink); }
+    header { background:var(--navy); color:#fff; padding:20px 32px; }
+    .wordmark { font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+                color:rgba(255,255,255,.6); margin-bottom:4px; }
+    h1 { margin:0; font-size:20px; color:#fff; }
+    h1 span { color:var(--gold); }
     main { max-width:980px; margin:0 auto; padding:24px 32px 64px; }
-    .card { background:var(--card); border:1px solid #334155; border-radius:10px; padding:20px; margin-bottom:20px; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:10px;
+            padding:20px; margin-bottom:20px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
     label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
-    input[type=text] { width:100%; padding:8px 10px; border-radius:6px; border:1px solid #475569; background:#0b1220; color:var(--ink); }
+    input[type=text] { width:100%; padding:8px 10px; border-radius:6px;
+                       border:1px solid var(--border); background:#fff; color:var(--ink); }
+    input[type=text]:focus { outline:2px solid var(--navy); outline-offset:-1px; border-color:var(--navy); }
     .row { display:flex; gap:16px; flex-wrap:wrap; }
     .row > div { flex:1; min-width:220px; }
-    button { background:var(--accent); color:#06283b; border:0; border-radius:6px; padding:9px 16px; font-weight:600; cursor:pointer; }
-    button.secondary { background:#334155; color:var(--ink); }
-    button:disabled { opacity:.5; cursor:default; }
+    button { background:var(--navy); color:#fff; border:0; border-radius:6px;
+             padding:9px 16px; font-weight:600; cursor:pointer; }
+    button:hover { background:var(--navy-dk); }
+    button.secondary { background:#fff; color:var(--navy); border:1px solid var(--navy); }
+    button.secondary:hover { background:#f0f4f8; }
+    button:disabled { opacity:.45; cursor:default; }
     .pill { display:inline-block; padding:2px 8px; border-radius:99px; font-size:12px; font-weight:600; }
-    .pill.error{background:rgba(248,113,113,.2);color:var(--err);}
-    .pill.warning{background:rgba(251,191,36,.2);color:var(--warn);}
-    .pill.info{background:rgba(56,189,248,.2);color:var(--accent);}
+    .pill.error { background:rgba(185,28,28,.12); color:#b91c1c; }
+    .pill.warning { background:rgba(146,64,14,.12); color:#92400e; }
+    .pill.info { background:rgba(0,60,108,.1); color:var(--navy); }
     table { width:100%; border-collapse:collapse; font-size:13px; }
-    th,td { text-align:left; padding:6px 8px; border-bottom:1px solid #334155; }
+    th,td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--border); }
     th { color:var(--muted); font-weight:600; }
     .muted { color:var(--muted); }
-    .stat { font-size:26px; font-weight:700; } .stat + .muted { font-size:12px; }
+    .stat { font-size:26px; font-weight:700; color:var(--navy); }
+    .stat + .muted { font-size:12px; }
     .stats { display:flex; gap:28px; flex-wrap:wrap; }
     .hidden { display:none; }
     .err-box { color:var(--err); }
     .review { color:var(--warn); font-weight:600; }
     .dl { display:flex; gap:12px; margin-top:8px; }
     a.btnlink { text-decoration:none; }
-    a.back { color:var(--muted); text-decoration:none; font-size:13px; }
-    a.back:hover { color:var(--accent); }
+    a.back { color:var(--gold); text-decoration:none; font-size:13px; }
+    a.back:hover { color:#fff; }
   </style>
 </head>
 <body>
-  <header><a class="back" href="/">← All tools</a>
-    <h1 style="margin-top:6px">Data-Prep <span>Tool</span></h1>
-    <div class="muted">Upload a CSV or point to a Google Sheet. We'll profile it, flag quality issues, plan duplicate merges, and generate a README.</div>
+  <header>
+    <div class="wordmark">University of California Santa Cruz &nbsp;·&nbsp; <a class="back" href="/">← All tools</a></div>
+    <h1>Data-Prep <span>Tool</span></h1>
+    <div style="color:rgba(255,255,255,.75);margin-top:4px">Upload a CSV or point to a Google Sheet. We'll profile it, flag quality issues, plan duplicate merges, and generate a README.</div>
   </header>
   <main>
     <div class="card">
