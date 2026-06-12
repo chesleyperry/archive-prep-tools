@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AV File Access Preparation</title>
+  <title>Data-Prep Tool</title>
   <style>
     :root { --bg:#0f172a; --card:#1e293b; --ink:#e2e8f0; --muted:#94a3b8;
             --accent:#38bdf8; --warn:#fbbf24; --err:#f87171; --ok:#4ade80; }
@@ -14,77 +14,56 @@
     main { max-width:980px; margin:0 auto; padding:24px 32px 64px; }
     .card { background:var(--card); border:1px solid #334155; border-radius:10px; padding:20px; margin-bottom:20px; }
     label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
-    input[type=text], select { width:100%; padding:8px 10px; border-radius:6px; border:1px solid #475569; background:#0b1220; color:var(--ink); }
+    input[type=text] { width:100%; padding:8px 10px; border-radius:6px; border:1px solid #475569; background:#0b1220; color:var(--ink); }
     .row { display:flex; gap:16px; flex-wrap:wrap; }
     .row > div { flex:1; min-width:220px; }
     button { background:var(--accent); color:#06283b; border:0; border-radius:6px; padding:9px 16px; font-weight:600; cursor:pointer; }
     button.secondary { background:#334155; color:var(--ink); }
     button:disabled { opacity:.5; cursor:default; }
     .pill { display:inline-block; padding:2px 8px; border-radius:99px; font-size:12px; font-weight:600; }
-    .pill.transcribed{background:rgba(74,222,128,.2);color:var(--ok);}
     .pill.error{background:rgba(248,113,113,.2);color:var(--err);}
-    .pill.skip{background:rgba(251,191,36,.2);color:var(--warn);}
+    .pill.warning{background:rgba(251,191,36,.2);color:var(--warn);}
     .pill.info{background:rgba(56,189,248,.2);color:var(--accent);}
     table { width:100%; border-collapse:collapse; font-size:13px; }
-    th,td { text-align:left; padding:6px 8px; border-bottom:1px solid #334155; vertical-align:top; }
+    th,td { text-align:left; padding:6px 8px; border-bottom:1px solid #334155; }
     th { color:var(--muted); font-weight:600; }
     .muted { color:var(--muted); }
+    .stat { font-size:26px; font-weight:700; } .stat + .muted { font-size:12px; }
+    .stats { display:flex; gap:28px; flex-wrap:wrap; }
     .hidden { display:none; }
     .err-box { color:var(--err); }
+    .review { color:var(--warn); font-weight:600; }
     .dl { display:flex; gap:12px; margin-top:8px; }
     a.btnlink { text-decoration:none; }
     a.back { color:var(--muted); text-decoration:none; font-size:13px; }
     a.back:hover { color:var(--accent); }
-    .bar { height:10px; background:#0b1220; border-radius:99px; overflow:hidden; border:1px solid #334155; }
-    .bar > div { height:100%; background:var(--accent); width:0%; transition:width .3s; }
   </style>
 </head>
 <body>
   <header><a class="back" href="/">← All tools</a>
-    <h1 style="margin-top:6px">AV File Access <span>Preparation</span></h1>
-    <div class="muted">Point to a folder of audio/video, add a metadata CSV, and choose where outputs go. Everything runs locally: transcripts (SRT/RTF), 3-sentence descriptions, and an enriched batch CSV.</div>
+    <h1 style="margin-top:6px">Data-Prep <span>Tool</span></h1>
+    <div class="muted">Upload a CSV or point to a Google Sheet. We'll profile it, flag quality issues, plan duplicate merges, and generate a README.</div>
   </header>
   <main>
     <div class="card">
       <div class="row">
         <div>
-          <label>Input directory (folder of .mp3 / .mp4)</label>
-          <input type="text" id="inputDir" placeholder="/path/to/media" />
+          <label>CSV file</label>
+          <input type="file" id="file" accept=".csv" />
         </div>
         <div>
-          <label>Output directory</label>
-          <input type="text" id="outputDir" placeholder="/path/to/output" />
-        </div>
-      </div>
-      <div class="row" style="margin-top:14px">
-        <div>
-          <label>Metadata CSV (optional)</label>
-          <input type="file" id="csv" accept=".csv" />
-        </div>
-        <div>
-          <label>Join column (unique ID = filename without extension)</label>
-          <input type="text" id="idColumn" value="localIdentifier" />
+          <label>…or Google Sheet URL</label>
+          <input type="text" id="sheetUrl" placeholder="https://docs.google.com/spreadsheets/d/…" />
         </div>
       </div>
-      <div class="row" style="margin-top:14px">
+      <div style="margin-top:14px" class="row">
         <div>
-          <label>Whisper model</label>
-          <select id="whisperModel">
-            <option value="tiny">tiny (fastest)</option>
-            <option value="base">base</option>
-            <option value="small" selected>small (recommended)</option>
-            <option value="medium">medium</option>
-            <option value="large-v3">large-v3 (most accurate)</option>
-          </select>
-        </div>
-        <div>
-          <label>Enrichment model (Ollama)</label>
-          <input type="text" id="enrichModel" value="qwen2.5:latest" />
+          <label>Dedupe key columns (optional, comma-separated). Blank = whole-row match.</label>
+          <input type="text" id="keyCols" placeholder="email, phone" />
         </div>
       </div>
       <div style="margin-top:16px">
-        <button id="startBtn">Start batch</button>
-        <button id="cancelBtn" class="secondary hidden">Cancel</button>
+        <button id="analyzeBtn">Analyze</button>
         <span id="status" class="muted"></span>
       </div>
     </div>
@@ -92,6 +71,6 @@
     <div id="results" class="hidden"></div>
   </main>
 
-  <script src="av.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

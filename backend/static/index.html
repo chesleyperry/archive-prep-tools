@@ -3,71 +3,86 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Data-Prep Tool</title>
+  <title>Archive Prep Tools</title>
   <style>
     :root { --bg:#0f172a; --card:#1e293b; --ink:#e2e8f0; --muted:#94a3b8;
-            --accent:#38bdf8; --warn:#fbbf24; --err:#f87171; --ok:#4ade80; }
+            --accent:#38bdf8; --warn:#fbbf24; --ok:#4ade80; }
     * { box-sizing: border-box; }
-    body { margin:0; font:15px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--ink); }
-    header { padding:24px 32px; border-bottom:1px solid #334155; }
-    h1 { margin:0; font-size:20px; } h1 span { color:var(--accent); }
-    main { max-width:980px; margin:0 auto; padding:24px 32px 64px; }
-    .card { background:var(--card); border:1px solid #334155; border-radius:10px; padding:20px; margin-bottom:20px; }
-    label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
-    input[type=text] { width:100%; padding:8px 10px; border-radius:6px; border:1px solid #475569; background:#0b1220; color:var(--ink); }
-    .row { display:flex; gap:16px; flex-wrap:wrap; }
-    .row > div { flex:1; min-width:220px; }
-    button { background:var(--accent); color:#06283b; border:0; border-radius:6px; padding:9px 16px; font-weight:600; cursor:pointer; }
-    button.secondary { background:#334155; color:var(--ink); }
-    button:disabled { opacity:.5; cursor:default; }
-    .pill { display:inline-block; padding:2px 8px; border-radius:99px; font-size:12px; font-weight:600; }
-    .pill.error{background:rgba(248,113,113,.2);color:var(--err);}
-    .pill.warning{background:rgba(251,191,36,.2);color:var(--warn);}
-    .pill.info{background:rgba(56,189,248,.2);color:var(--accent);}
-    table { width:100%; border-collapse:collapse; font-size:13px; }
-    th,td { text-align:left; padding:6px 8px; border-bottom:1px solid #334155; }
-    th { color:var(--muted); font-weight:600; }
-    .muted { color:var(--muted); }
-    .stat { font-size:26px; font-weight:700; } .stat + .muted { font-size:12px; }
-    .stats { display:flex; gap:28px; flex-wrap:wrap; }
-    .hidden { display:none; }
-    .err-box { color:var(--err); }
-    .review { color:var(--warn); font-weight:600; }
-    .dl { display:flex; gap:12px; margin-top:8px; }
-    a.btnlink { text-decoration:none; }
+    body { margin:0; font:15px/1.6 system-ui, sans-serif; background:var(--bg); color:var(--ink); }
+    header { padding:32px 32px 8px; }
+    h1 { margin:0; font-size:24px; } h1 span { color:var(--accent); }
+    .lede { color:var(--muted); margin-top:6px; }
+    main { max-width:860px; margin:0 auto; padding:16px 32px 64px; }
+    .card { background:var(--card); border:1px solid #334155; border-radius:12px;
+            padding:22px 24px; margin-bottom:18px; display:flex; gap:20px;
+            align-items:flex-start; justify-content:space-between; flex-wrap:wrap; }
+    .card h2 { margin:0 0 6px; font-size:18px; }
+    .card .desc { color:var(--muted); max-width:560px; }
+    .tag { display:inline-block; font-size:11px; font-weight:700; letter-spacing:.04em;
+           text-transform:uppercase; padding:2px 8px; border-radius:99px; margin-bottom:8px; }
+    .tag.web { background:rgba(56,189,248,.18); color:var(--accent); }
+    .tag.cli { background:rgba(251,191,36,.18); color:var(--warn); }
+    a.btn { display:inline-block; background:var(--accent); color:#06283b; text-decoration:none;
+            border-radius:8px; padding:10px 18px; font-weight:700; white-space:nowrap; }
+    a.btn.secondary { background:#334155; color:var(--ink); }
+    .note { background:rgba(56,189,248,.08); border:1px solid #334155; border-radius:10px;
+            padding:14px 18px; color:var(--muted); margin-bottom:22px; font-size:14px; }
+    code { background:#0b1220; padding:2px 6px; border-radius:5px; font-size:13px; color:var(--ink); }
+    footer { color:var(--muted); font-size:13px; margin-top:8px; }
+    footer a { color:var(--accent); }
   </style>
 </head>
 <body>
-  <header><h1>Data-Prep <span>Tool</span></h1>
-    <div class="muted">Upload a CSV or point to a Google Sheet. We'll profile it, flag quality issues, plan duplicate merges, and generate a README.</div>
+  <header>
+    <h1>Archive Prep <span>Tools</span></h1>
+    <div class="lede">A small suite for preparing audiovisual and tabular archive materials.</div>
   </header>
   <main>
-    <div class="card">
-      <div class="row">
-        <div>
-          <label>CSV file</label>
-          <input type="file" id="file" accept=".csv" />
-        </div>
-        <div>
-          <label>…or Google Sheet URL</label>
-          <input type="text" id="sheetUrl" placeholder="https://docs.google.com/spreadsheets/d/…" />
-        </div>
-      </div>
-      <div style="margin-top:14px" class="row">
-        <div>
-          <label>Dedupe key columns (optional, comma-separated). Blank = whole-row match.</label>
-          <input type="text" id="keyCols" placeholder="email, phone" />
-        </div>
-      </div>
-      <div style="margin-top:16px">
-        <button id="analyzeBtn">Analyze</button>
-        <span id="status" class="muted"></span>
-      </div>
+    <div class="note">
+      This page is served by your own computer. To use the web tools below, the local
+      server must be running — see the <strong>README</strong> for one-time setup and the
+      <code>./start.sh</code> command. The first audio/video job downloads a transcription
+      model once, then runs quickly.
     </div>
 
-    <div id="results" class="hidden"></div>
-  </main>
+    <div class="card">
+      <div>
+        <span class="tag web">Web tool</span>
+        <h2>AV File Access Preparation</h2>
+        <div class="desc">Point to a folder of audio/video files and a metadata CSV. The tool
+          transcribes speech (SRT + RTF), writes a short content description per file, pulls out
+          names, places, and music/poem/book titles, and builds one enriched metadata
+          spreadsheet — all on your machine.</div>
+      </div>
+      <a class="btn" href="/av.html">Open tool →</a>
+    </div>
 
-  <script src="app.js"></script>
+    <div class="card">
+      <div>
+        <span class="tag web">Web tool</span>
+        <h2>Data-Prep Tool</h2>
+        <div class="desc">Upload a CSV or point to a Google Sheet. The tool checks every column
+          for quality problems (empty/outlier/inconsistent values), plans duplicate merges, and
+          generates a README and data dictionary — leaving your original file untouched.</div>
+      </div>
+      <a class="btn" href="/dataprep.html">Open tool →</a>
+    </div>
+
+    <div class="card">
+      <div>
+        <span class="tag cli">Command line</span>
+        <h2>Merritt Harvester</h2>
+        <div class="desc">A Terminal script that pulls collection metadata from a private Merritt
+          collection into CSV/JSON. This one has no web form — you run it from Terminal with a
+          session cookie copied from your browser. Step-by-step instructions are in the README.</div>
+      </div>
+      <a class="btn secondary" href="https://github.com/chesleyperry/archive-prep-tools#merritt-harvester">Instructions →</a>
+    </div>
+
+    <footer>
+      Source &amp; full instructions:
+      <a href="https://github.com/chesleyperry/archive-prep-tools">github.com/chesleyperry/archive-prep-tools</a>
+    </footer>
+  </main>
 </body>
 </html>

@@ -1,96 +1,120 @@
-# Data-Prep Tool
+# Archive Prep Tools
 
-A web tool that checks tabular data for quality problems and documents it before
-visualization. Upload a CSV or point to a Google Sheet; the tool profiles every
-column, flags empty/outlier/"fishy" cells, plans duplicate merges, and generates
-a README + data dictionary — leaving your original file untouched.
+A small suite for preparing audiovisual and tabular archive materials. Everything
+runs **locally on your own Mac** — your files and audio never leave the machine.
 
-## What it does
+| Tool | Type | What it does |
+| --- | --- | --- |
+| **AV File Access Preparation** | Web | Transcribes a folder of audio/video, writes a short description and transcript (SRT/RTF) per file, extracts names/places/titles, and builds one enriched metadata CSV. |
+| **Data-Prep Tool** | Web | Checks a CSV or Google Sheet for quality problems, plans duplicate merges, and generates a README + data dictionary. |
+| **Merritt Harvester** | Command line | Pulls collection metadata from a private Merritt collection into CSV/JSON. |
 
-| Stage | Detail |
-| --- | --- |
-| **Ingest** | CSV upload or Google Sheet URL (OAuth, read-only). Values read as strings so type problems stay visible. Hard cap: 40,000 rows. |
-| **Profile** | Per column: inferred type, fill rate, unique count, min/max/mean, sample values. |
-| **Validate** | Six pluggable checks: missing values, statistical outliers (IQR), type inconsistencies, format violations (email/phone/ZIP), inconsistent categories, junk/impossible values. |
-| **Dedupe** | Groups duplicate rows; keeps the *most complete* row. A merge that would discard a conflicting non-empty value is marked **review** and is never applied without explicit approval. |
-| **Output** | Markdown README + column data dictionary, plus a cleaned CSV. The original is never modified. |
+The two web tools share one web server and one home page; the Merritt harvester is
+a Terminal script.
 
-## Architecture
+---
 
-```
-backend/
-  app/
-    main.py            FastAPI routes + serves the frontend
-    pipeline.py        orchestrator (framework-free, unit-tested)
-    ingest.py          CSV / record loading + row-limit guard
-    profiling.py       column type inference & stats
-    validation/        pluggable validator framework
-      base.py          Validator ABC + registry (@register)
-      checks.py        the six built-in checks
-      runner.py        runs all validators, isolates failures
-    dedup.py           duplicate detection + merge planning
-    cleaning.py        safe transforms + merge application (copy only)
-    report.py          README + data dictionary generation
-    google_sheets.py   OAuth (read-only) Sheets ingestion
-    models.py          shared dataclasses (Issue, ColumnProfile, ...)
-  static/              no-build HTML/JS frontend (upload, results, downloads)
-  tests/               pipeline smoke + unit tests
-sample_data/messy.csv  fixture exercising every check
-```
+## 1. One-time setup
 
-**Why this shape:** datasets ≤40k rows fit in memory, so pandas processes each
-upload in one pass — no database, no streaming. Each request is stateless;
-results are cached in-process by job id only long enough to download artifacts.
-
-## Run it
+You need a Mac with **[Homebrew](https://brew.sh)** installed. Then:
 
 ```bash
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-cd backend
-../.venv/bin/python -m uvicorn app.main:app --reload --port 8000
+# Install the supporting programs (once):
+brew install ffmpeg                 # needed to read audio/video
+arch -arm64 /opt/homebrew/bin/brew install python@3.12   # native Apple-Silicon Python for transcription
+
+# Install Ollama for the AV tool's summaries (once):
+#   1. Download from https://ollama.com and open it
+#   2. In Terminal:  ollama pull qwen2.5
+
+# From inside this project folder, set up the tools (once):
+./setup.sh
 ```
 
-Open http://127.0.0.1:8000 for the UI, or http://127.0.0.1:8000/docs for the API.
+`./setup.sh` creates the two Python environments the tools need and installs
+everything into them. It does not touch the rest of your system.
 
-### Tests
+> **Why two Python environments?** The web server runs on your system Python,
+> while transcription runs in a separate, native Apple-Silicon Python 3.12 so it
+> can use your Mac's GPU. `setup.sh` handles both for you.
+
+---
+
+## 2. Start the web tools
 
 ```bash
-cd backend && ../.venv/bin/python tests/test_pipeline.py
+./start.sh
 ```
 
-## Adding a new validator (incl. the future LLM check)
+Then open **http://127.0.0.1:8000** in your browser. You'll see the home page with
+a link to each web tool. Leave the Terminal window open while you work; press
+**Control-C** in it to stop the server when you're done.
 
-Validators are plugins. Drop a class into `app/validation/checks.py` (or a new
-module imported by `validation/__init__.py`):
+> For the AV tool, make sure **Ollama is running** first (open the Ollama app, or
+> run `ollama list` to check).
 
-```python
-@register
-class MyCheck(Validator):
-    name = "my_check"
-    description = "What it flags."
+---
 
-    def check(self, df):
-        # yield Issue(...) for each finding
-        ...
+## 3. Using each tool
+
+### AV File Access Preparation
+
+From the home page, click **Open tool** under *AV File Access Preparation*, then:
+
+1. **Input directory** — the full path to your folder of `.mp3` / `.mp4` files.
+2. **Output directory** — where the results should be written.
+3. **Metadata CSV** (optional) — your existing spreadsheet. It is matched to the
+   media files on the **`localIdentifier`** column (the filename without its
+   extension) and the tool **adds new columns without changing your originals**.
+4. **Whisper model** — `small` is a good balance; `large-v3` is most accurate but
+   slower; `tiny`/`base` are fastest.
+5. Click **Start batch** and watch the progress bar.
+
+For each file it writes, into your output folder:
+
+- `NAME_transcript.srt` and `NAME_transcript.rtf` — the transcript
+- `NAME_summary.txt` — a 3-sentence content description
+- `AV_metadata_<date>.csv` — your CSV plus new columns: suggested title/date,
+  description, people, places, music/poem/book titles, and a `transcript_status`
+
+Files with no speech (silent reels, no audio track) are handled gracefully —
+they skip the transcript files and note why in `transcript_status`.
+
+> The very first run downloads the transcription model once (about a minute),
+> then later files run quickly.
+
+### Data-Prep Tool
+
+From the home page, click **Open tool** under *Data-Prep Tool*, then upload a CSV
+(or paste a Google Sheet URL), optionally name the columns to match duplicates
+on, and click **Analyze**. Download the generated README and cleaned CSV from the
+results page. Your original file is never modified.
+
+Deeper reference (architecture, adding checks, Google Sheets OAuth) is in
+[`docs/data-prep.md`](docs/data-prep.md).
+
+### Merritt Harvester
+
+This one runs in Terminal (no web page). In a Terminal window:
+
+```bash
+.venv/bin/python merritt_harvest.py
 ```
 
-The runner, README, and API pick it up automatically. The planned LLM-based
-semantic check will subclass `Validator` the same way — it just calls a model
-inside `check()` instead of using pandas.
+It will ask you to paste a Merritt session cookie. To get it:
 
-## Google Sheets setup
+1. Log in to **https://merritt.cdlib.org** in your browser.
+2. Open DevTools → Application/Storage → Cookies → `https://merritt.cdlib.org`.
+3. Copy the **value** of the cookie named `_mrt-dash_session` and paste it when
+   prompted (the prompt hides what you type). Cookies expire, so grab a fresh one
+   each session.
 
-OAuth is **read-only** by design. To enable it, create a Google Cloud project,
-enable the Sheets API, download an OAuth client as
-`backend/secrets/client_secret.json`. First use opens a browser consent screen;
-the token caches to `backend/secrets/token.json`. See `app/google_sheets.py`.
+---
 
-## Notes / next steps
+## Notes
 
-- **Frontend:** currently a no-build HTML/JS page (Node isn't installed here).
-  Swap in a Vite + React SPA for a richer interactive merge-review screen — the
-  API contract stays identical.
-- **Destructive merges:** the API accepts the merge plan but the approve-and-
-  apply UI loop (per-conflict confirmation) is the natural next build step.
-- **LLM "fishy cell" pass:** intentionally deferred; the plugin seam is ready.
+- **Everything is local.** No audio, video, or spreadsheet data is sent to any
+  outside service. Summaries use the local Ollama model on your machine.
+- **Outputs** go wherever you point the tools — your originals are never changed.
+- Developer details (code layout, tests) live in [`backend/`](backend/) and
+  [`docs/data-prep.md`](docs/data-prep.md).
