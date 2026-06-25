@@ -2,7 +2,9 @@
 """Harvest object metadata for a private Merritt collection via its ATOM feed.
 
 Walks the paginated recent.atom feed for a collection, collecting one record
-per object (with its files), and writes both JSON and CSV.
+per object (with its files), and writes both JSON and CSV. Optionally does a
+second pass that fetches each object's system/mrt-ingest.txt to read its
+localIdentifier (one extra request per object).
 
 The Merritt feed authenticates with a Rails session cookie, NOT HTTP Basic
 auth (the dashboard login also sits behind an AWS WAF JS challenge that a
@@ -28,6 +30,7 @@ Dependencies: requests, feedparser  (see requirements.txt)
 import csv
 import getpass
 import json
+import os
 import re
 import sys
 from urllib.parse import urljoin
@@ -36,11 +39,14 @@ import feedparser
 import requests
 
 DEFAULT_ARK = "ark:/13030/m5jr2679"
-BASE = "https://merritt.cdlib.org/object/recent.atom"
+HOST = "https://merritt.cdlib.org"
+BASE = f"{HOST}/object/recent.atom"
 SESSION_COOKIE = "_mrt-dash_session"
+INGEST_FILE = "system/mrt-ingest.txt"
+UNASSIGNED = "(:unas)"  # Merritt's placeholder for an empty field
 
-OUT_JSON = "merritt_collection.json"
-OUT_CSV = "merritt_collection.csv"
+DEFAULT_BASENAME = "merritt_collection"
+OUTPUT_DIR = "outputs"  # gitignored, so private metadata isn't committed
 
 # `ark:/...` embedded in the entry id (e.g. "http://n2t.net/ark:/13030/m59421hf").
 ARK_RE = re.compile(r"ark:/\S+")
@@ -59,6 +65,17 @@ def get_session_cookie():
 def get_collection_ark():
     val = input(f"Collection ARK [{DEFAULT_ARK}]: ").strip() or DEFAULT_ARK
     return val
+
+
+def get_output_basename():
+    name = input(
+        f"Name for the output files (no extension) [{DEFAULT_BASENAME}]: "
+    ).strip() or DEFAULT_BASENAME
+    # Tolerate a typed .json/.csv extension.
+    for ext in (".json", ".csv"):
+        if name.lower().endswith(ext):
+            name = name[: -len(ext)]
+    return name
 
 
 def bare_ark(object_id):
@@ -106,6 +123,7 @@ def parse_entry(entry):
     return {
         "object_ark": object_id,
         "bare_ark": bare_ark(object_id),
+        "local_identifier": None,  # filled in later from mrt-ingest.txt
         "version": object_version(files),
         "title": entry.get("title"),
         "author": entry.get("author"),
@@ -123,14 +141,18 @@ def next_url(feed):
     return None
 
 
-def harvest(cookie_value, ark):
-    url = f"{BASE}?collection={ark}"
-    objects = []
-    page = 0
+def build_session(cookie_value):
     session = requests.Session()
     # Send the cookie as a raw header so requests' cookie jar can't re-quote a
     # value containing %, =, or -- (which _mrt-dash_session does).
     session.headers["Cookie"] = f"{SESSION_COOKIE}={cookie_value}"
+    return session
+
+
+def harvest(session, ark):
+    url = f"{BASE}?collection={ark}"
+    objects = []
+    page = 0
 
     while url:
         page += 1
@@ -162,50 +184,124 @@ def harvest(cookie_value, ark):
     return objects
 
 
-def write_outputs(objects):
-    with open(OUT_JSON, "w") as fh:
+def ingest_href(obj):
+    """Find the object's system/mrt-ingest.txt download link, if present."""
+    for f in obj["files"]:
+        if f.get("title") == INGEST_FILE:
+            return f.get("href")
+    return None
+
+
+def parse_local_identifier(text):
+    """Pull the localIdentifier value out of an mrt-ingest.txt body.
+
+    The file is tab-separated `key:<TAB>value` lines. Split on the first tab
+    (not the colon — values like collection: and timestamps contain colons).
+    Merritt writes "(:unas)" when a field is unset; treat that as no value.
+    """
+    for line in text.splitlines():
+        key, sep, value = line.partition("\t")
+        if not sep:
+            continue
+        if key.rstrip(":").strip().lower() == "localidentifier":
+            value = value.strip()
+            return None if value in ("", UNASSIGNED) else value
+    return None
+
+
+def enrich_local_identifiers(session, objects):
+    """Second pass: fetch each object's ingest file and read its localIdentifier.
+
+    One extra request per object, so this is the slow part. Stops gracefully if
+    the session expires, leaving already-fetched values in place so the run can
+    still be written out (re-run with a fresh cookie to fill the rest).
+    """
+    total = len(objects)
+    print(f"Fetching localIdentifier for {total} objects "
+          "(one request each; this can take a while)...")
+    for i, obj in enumerate(objects, 1):
+        href = ingest_href(obj)
+        if not href:
+            continue
+        try:
+            resp = session.get(urljoin(HOST, href), timeout=60)
+            if resp.status_code == 401:
+                print(f"  session expired at object {i}/{total}; keeping what "
+                      "we have. Re-run with a fresh cookie to finish the rest.",
+                      file=sys.stderr)
+                break
+            resp.raise_for_status()
+            obj["local_identifier"] = parse_local_identifier(resp.text)
+        except requests.RequestException as exc:
+            print(f"  warn: {obj['bare_ark']}: {exc}", file=sys.stderr)
+        if i % 100 == 0 or i == total:
+            print(f"  enriched {i}/{total}")
+
+
+def _to_int(value):
+    """File lengths arrive as strings; treat missing/blank as 0 for summing."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+def write_outputs(objects, basename):
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    out_json = os.path.join(OUTPUT_DIR, f"{basename}.json")
+    out_csv = os.path.join(OUTPUT_DIR, f"{basename}.csv")
+
+    # JSON keeps the complete records (all files + every field).
+    with open(out_json, "w") as fh:
         json.dump(objects, fh, indent=2)
 
-    # CSV: one row per file, with the parent object's metadata repeated.
-    # file_category lets you filter object_zip / system / producer in a sheet.
+    # CSV is the trimmed view: ONE row per object, aggregating producer files
+    # only (system files and the whole-object zip are excluded). total_file_length
+    # sums the producer file sizes; file_types lists their unique MIME types.
     fields = [
-        "bare_ark", "object_ark", "version", "title", "updated", "published",
-        "file_category", "file_rel", "file_title", "file_type", "file_length",
-        "file_href",
+        "bare_ark", "local_identifier", "object_ark", "version", "title",
+        "total_file_length", "file_types",
     ]
-    with open(OUT_CSV, "w", newline="") as fh:
+    with open(out_csv, "w", newline="") as fh:
         writer = csv.DictWriter(fh, fieldnames=fields)
         writer.writeheader()
         for obj in objects:
-            rows = obj["files"] or [{}]  # emit a row even if no file links
-            for f in rows:
-                writer.writerow(
-                    {
-                        "bare_ark": obj["bare_ark"],
-                        "object_ark": obj["object_ark"],
-                        "version": obj["version"],
-                        "title": obj["title"],
-                        "updated": obj["updated"],
-                        "published": obj["published"],
-                        "file_category": f.get("category"),
-                        "file_rel": f.get("rel"),
-                        "file_title": f.get("title"),
-                        "file_type": f.get("type"),
-                        "file_length": f.get("length"),
-                        "file_href": f.get("href"),
-                    }
-                )
+            producer = [f for f in obj["files"] if f.get("category") == "producer"]
+            total_len = sum(_to_int(f.get("length")) for f in producer)
+            types = sorted({f.get("type") for f in producer if f.get("type")})
+            writer.writerow(
+                {
+                    "bare_ark": obj["bare_ark"],
+                    "local_identifier": obj["local_identifier"],
+                    "object_ark": obj["object_ark"],
+                    "version": obj["version"],
+                    "title": obj["title"],
+                    "total_file_length": total_len,
+                    "file_types": ", ".join(types),
+                }
+            )
+    return out_json, out_csv
 
 
 def main():
     ark = get_collection_ark()
+    basename = get_output_basename()
+    want_local_id = input(
+        "Also fetch localIdentifier from each object's ingest file? "
+        "(slower, one request per object) [Y/n]: "
+    ).strip().lower() not in ("n", "no")
     cookie_value = get_session_cookie()
+    session = build_session(cookie_value)
+
     print(f"Harvesting collection {ark}")
-    objects = harvest(cookie_value, ark)
-    write_outputs(objects)
+    objects = harvest(session, ark)
+    if want_local_id:
+        enrich_local_identifiers(session, objects)
+
+    out_json, out_csv = write_outputs(objects, basename)
     print(f"\nDone: {len(objects)} objects")
-    print(f"  {OUT_JSON}")
-    print(f"  {OUT_CSV}  (one row per file)")
+    print(f"  {out_json}  (full records)")
+    print(f"  {out_csv}  (one row per object, producer files aggregated)")
 
 
 if __name__ == "__main__":
