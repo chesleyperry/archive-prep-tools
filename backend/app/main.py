@@ -164,6 +164,33 @@ async def merge_csv(
     return {"job_id": job_id, **result.to_dict()}
 
 
+@app.post("/api/merge/sheets")
+async def merge_sheets_by_url(
+    master_url: str = Form(...),
+    addition_url: str = Form(...),
+    key_columns: str = Form(...),
+):
+    """Merge two Google Sheets (shared 'anyone with link') by URL.
+
+    Same merge rules as the CSV version; the sheets are read via Google's public
+    CSV export, so no credentials are required.
+    """
+    from app.google_sheets import load_public_sheet
+    from app.sheet_merge import merge_sheets
+
+    keys = _parse_keys(key_columns)
+    if not keys:
+        raise HTTPException(400, "Please name at least one key column to match on.")
+    try:
+        master_df = load_public_sheet(master_url)
+        new_df = load_public_sheet(addition_url)
+        result = merge_sheets(master_df, new_df, keys)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    job_id = _store_merge(result)
+    return {"job_id": job_id, **result.to_dict()}
+
+
 @app.get("/api/merge/{job_id}/result")
 def download_merged(job_id: str):
     result = _get_merge(job_id)

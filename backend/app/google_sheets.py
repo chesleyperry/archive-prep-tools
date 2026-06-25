@@ -35,6 +35,55 @@ def extract_sheet_id(url_or_id: str) -> str:
     return match.group(1) if match else url_or_id.strip()
 
 
+_GID_RE = re.compile(r"[#?&]gid=([0-9]+)")
+
+
+def extract_gid(url_or_id: str) -> str | None:
+    """Pull the worksheet (tab) id from a Sheets URL, if present."""
+    match = _GID_RE.search(url_or_id)
+    return match.group(1) if match else None
+
+
+def load_public_sheet(url_or_id: str):
+    """Read a Google Sheet shared as 'anyone with the link can view'.
+
+    Uses Google's built-in CSV export, so no OAuth/credentials are needed. Reads
+    the specific tab named by ``#gid=`` in the URL, otherwise the first tab.
+
+    Raises ValueError with a plain-English message if the sheet isn't actually
+    public (Google then serves an HTML sign-in page instead of CSV).
+    """
+    import requests
+
+    from app import ingest
+
+    sheet_id = extract_sheet_id(url_or_id)
+    gid = extract_gid(url_or_id)
+    export_url = (
+        f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
+    )
+    if gid:
+        export_url += f"&gid={gid}"
+
+    try:
+        resp = requests.get(export_url, timeout=30, allow_redirects=True)
+    except requests.RequestException as exc:
+        raise ValueError(f"Could not reach Google Sheets: {exc}") from exc
+
+    # A non-public sheet redirects to a Google sign-in page (HTML, not CSV).
+    content_type = resp.headers.get("content-type", "")
+    if "accounts.google.com" in resp.url or "text/html" in content_type:
+        raise ValueError(
+            "That sheet isn't readable by link. In the sheet, click Share and set "
+            "'Anyone with the link' to 'Viewer', then try again."
+        )
+    if resp.status_code == 404:
+        raise ValueError("Sheet not found — check the URL is correct.")
+    resp.raise_for_status()
+
+    return ingest.load_csv(resp.content)
+
+
 def _get_credentials():
     """Load cached OAuth creds, refreshing or running the consent flow as needed."""
     from google.auth.transport.requests import Request
