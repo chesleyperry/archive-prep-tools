@@ -114,6 +114,76 @@ def download_cleaned(job_id: str):
     )
 
 
+# ---- Spreadsheet merge (master + new -> merged) ------------------------------
+
+# Separate in-process cache for merge jobs (holds MergeResult).
+_MERGE_JOBS: dict[str, "MergeResult"] = {}
+_MERGE_ORDER: list[str] = []
+
+
+def _store_merge(result: "MergeResult") -> str:
+    job_id = uuid.uuid4().hex
+    _MERGE_JOBS[job_id] = result
+    _MERGE_ORDER.append(job_id)
+    while len(_MERGE_ORDER) > _MAX_JOBS:
+        _MERGE_JOBS.pop(_MERGE_ORDER.pop(0), None)
+    return job_id
+
+
+def _get_merge(job_id: str) -> "MergeResult":
+    result = _MERGE_JOBS.get(job_id)
+    if result is None:
+        raise HTTPException(404, "Unknown or expired merge job id.")
+    return result
+
+
+@app.post("/api/merge/csv")
+async def merge_csv(
+    master: UploadFile,
+    addition: UploadFile,
+    key_columns: str = Form(...),
+):
+    """Merge an uploaded 'addition' CSV into a 'master' CSV.
+
+    Fills blank master cells, replaces master values when the new sheet is more
+    detailed (longer), appends new rows, and adds new columns. The uploaded
+    master file is never modified — a new merged CSV is produced.
+    """
+    from app.sheet_merge import merge_sheets
+
+    keys = _parse_keys(key_columns)
+    if not keys:
+        raise HTTPException(400, "Please name at least one key column to match on.")
+    try:
+        master_df = ingest.load_csv(await master.read())
+        new_df = ingest.load_csv(await addition.read())
+        result = merge_sheets(master_df, new_df, keys)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    job_id = _store_merge(result)
+    return {"job_id": job_id, **result.to_dict()}
+
+
+@app.get("/api/merge/{job_id}/result")
+def download_merged(job_id: str):
+    result = _get_merge(job_id)
+    return Response(
+        content=result.merged_csv,
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="merged_master.csv"'},
+    )
+
+
+@app.get("/api/merge/{job_id}/report")
+def download_merge_report(job_id: str):
+    result = _get_merge(job_id)
+    return Response(
+        content=result.report_markdown,
+        media_type="text/markdown",
+        headers={"Content-Disposition": 'attachment; filename="merge_report.md"'},
+    )
+
+
 # ---- AV File Access Preparation ----------------------------------------------
 
 @app.post("/api/av/batch")

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Spreadsheet Merge</title>
+  <style>
+    :root { --navy:#003C6C; --navy-dk:#002850; --gold:#FDB827;
+            --bg:#F4F6F8; --card:#ffffff; --ink:#1a1a1a; --muted:#5f6b7a;
+            --border:#d1d5db; --err:#b91c1c; --ok:#15803d; --warn:#92400e; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:15px/1.5 system-ui,sans-serif; background:var(--bg); color:var(--ink); }
+    header { background:var(--navy); color:#fff; padding:20px 32px; }
+    .wordmark { font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+                color:rgba(255,255,255,.6); margin-bottom:4px; }
+    h1 { margin:0; font-size:20px; color:#fff; }
+    h1 span { color:var(--gold); }
+    main { max-width:980px; margin:0 auto; padding:24px 32px 64px; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:10px;
+            padding:20px; margin-bottom:20px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+    label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
+    input[type=text] { width:100%; padding:8px 10px; border-radius:6px;
+                       border:1px solid var(--border); background:#fff; color:var(--ink); }
+    input[type=text]:focus { outline:2px solid var(--navy); outline-offset:-1px; border-color:var(--navy); }
+    .row { display:flex; gap:16px; flex-wrap:wrap; }
+    .row > div { flex:1; min-width:220px; }
+    button { background:var(--navy); color:#fff; border:0; border-radius:6px;
+             padding:9px 16px; font-weight:600; cursor:pointer; }
+    button:hover { background:var(--navy-dk); }
+    button.secondary { background:#fff; color:var(--navy); border:1px solid var(--navy); }
+    button.secondary:hover { background:#f0f4f8; }
+    button:disabled { opacity:.45; cursor:default; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th,td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--border); }
+    th { color:var(--muted); font-weight:600; }
+    .muted { color:var(--muted); }
+    .stat { font-size:26px; font-weight:700; color:var(--navy); }
+    .stat + .muted { font-size:12px; }
+    .stats { display:flex; gap:28px; flex-wrap:wrap; }
+    .hidden { display:none; }
+    .err-box { color:var(--err); }
+    .warn-box { background:rgba(146,64,14,.08); border:1px solid rgba(146,64,14,.25);
+                color:var(--warn); border-radius:8px; padding:10px 14px; margin-bottom:14px; }
+    .dl { display:flex; gap:12px; margin-top:8px; }
+    a.btnlink { text-decoration:none; }
+    a.back { color:var(--gold); text-decoration:none; font-size:13px; }
+    a.back:hover { color:#fff; }
+    .help { background:rgba(0,60,108,.05); border:1px solid rgba(0,60,108,.15);
+            border-radius:8px; padding:12px 16px; color:var(--muted); font-size:14px; margin-bottom:18px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wordmark">University Library Digital Scholarship &nbsp;|&nbsp; University of California Santa Cruz &nbsp;·&nbsp; <a class="back" href="/">← All tools</a></div>
+    <h1>Spreadsheet <span>Merge</span></h1>
+    <div style="color:rgba(255,255,255,.75);margin-top:4px">Add a new spreadsheet into a master spreadsheet: fill in blanks, update with more-detailed values, add new rows and columns. Your master file is never changed.</div>
+  </header>
+  <main>
+    <div class="help">
+      <strong>How it works:</strong> rows are matched between the two files using the
+      <em>key column</em> you name (for example an ID or accession number). Where the master is
+      blank, the new sheet fills it in. Where both have a value but they differ, the
+      <em>longer, more detailed</em> value wins. New records and new columns from the second
+      sheet are added. Nothing is overwritten silently — you get a full change report.
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>Master spreadsheet (CSV)</label>
+          <input type="file" id="master" accept=".csv" />
+        </div>
+        <div>
+          <label>New spreadsheet to merge in (CSV)</label>
+          <input type="file" id="addition" accept=".csv" />
+        </div>
+      </div>
+      <div style="margin-top:14px" class="row">
+        <div>
+          <label>Key column(s) to match rows on (comma-separated, must exist in both files)</label>
+          <input type="text" id="keyCols" placeholder="id   (or: accession_number)" />
+        </div>
+      </div>
+      <div style="margin-top:16px">
+        <button id="mergeBtn">Merge</button>
+        <span id="status" class="muted"></span>
+      </div>
+    </div>
+
+    <div id="results" class="hidden"></div>
+  </main>
+
+  <script src="merge.js"></script>
+</body>
+</html>
