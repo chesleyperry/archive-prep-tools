@@ -155,12 +155,10 @@ def merge_sheets(
     for nidx in new.index:
         nrow = new.loc[nidx]
         k = _key_tuple(nrow, key_columns)
-        if "" in k:
-            blank_new_keys += 1
-            continue
         key_dict = {kc: nrow[kc] for kc in key_columns}
+        has_key = "" not in k
 
-        if k in master_key_to_idx:
+        if has_key and k in master_key_to_idx:
             midx = master_key_to_idx[k]
             for col in new.columns:
                 nval = nrow[col]
@@ -184,13 +182,18 @@ def merge_sheets(
                 else:
                     kept.append(KeptDifference(key_dict, col, mval, nval))
         else:
-            # brand-new record: align it to the merged column set
+            # No usable key, or a key the master doesn't have -> brand-new row.
+            # Rows with a blank key can't be matched to anything, so they are
+            # inherently new data and are added (never dropped).
+            if not has_key:
+                blank_new_keys += 1
             row = {col: nrow[col] if col in new.columns else pd.NA for col in merged.columns}
             new_rows.append(row)
 
     if blank_new_keys:
         warnings.append(
-            f"{blank_new_keys} new row(s) had a blank key and were skipped."
+            f"{blank_new_keys} new row(s) had a blank key value and were added as "
+            "new rows (they can't be matched to existing records)."
         )
 
     if new_rows:
