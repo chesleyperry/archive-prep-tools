@@ -1,0 +1,92 @@
+{
+  "Accept-BagIt-Version": [
+    "0.97",
+    "1.0"
+  ],
+  "Accept-Serialization": [
+    "application/tar",
+    "application/zip"
+  ],
+  "Allow-Fetch.txt": false,
+  "Serialization": "optional",
+  "Manifests-Allowed": [
+    "md5",
+    "sha1",
+    "sha224",
+    "sha256",
+    "sha384",
+    "sha512"
+  ],
+  "Tag-Manifests-Allowed": [
+    "md5",
+    "sha1",
+    "sha224",
+    "sha256",
+    "sha384",
+    "sha512"
+  ],
+  "Manifests-Required": [
+    "sha256"
+  ],
+  "Tag-Manifests-Required": [],
+  "Tag-Files-Allowed": [
+    "*"
+  ],
+  "BagIt-Profile-Info": {
+    "BagIt-Profile-Identifier": "https://example.com/profile.json",
+    "BagIt-Profile-Version": "",
+    "Contact-Email": "",
+    "Contact-Name": "",
+    "External-Description": "",
+    "Source-Organization": "",
+    "Version": ""
+  },
+  "Bag-Info": {
+    "Bag-Count": {
+      "required": false
+    },
+    "Bag-Group-Identifier": {
+      "required": false
+    },
+    "Bag-Size": {
+      "required": false
+    },
+    "Bagging-Date": {
+      "required": false
+    },
+    "Bagging-Software": {
+      "required": false
+    },
+    "Contact-Email": {
+      "required": false
+    },
+    "Contact-Name": {
+      "required": false
+    },
+    "Contact-Phone": {
+      "required": false
+    },
+    "External-Description": {
+      "required": false
+    },
+    "External-Identifier": {
+      "required": false
+    },
+    "Internal-Sender-Description": {
+      "required": false
+    },
+    "Internal-Sender-Identifier": {
+      "required": false
+    },
+    "Organization-Address": {
+      "required": false
+    },
+    "Payload-Oxum": {
+      "required": false
+    },
+    "Source-Organization": {
+      "required": false
+    }
+  },
+  "Tag-Files-Required": []
+}
