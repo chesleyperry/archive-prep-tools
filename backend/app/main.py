@@ -172,6 +172,58 @@ def dc_export(
     )
 
 
+# ---- Merritt manifest export -------------------------------------------------
+
+@app.get("/api/jobs/{job_id}/manifest-mapping")
+def manifest_mapping_suggestion(job_id: str):
+    """Return the columns, the manifest fields, and a suggested mapping."""
+    from app.merritt_manifest import MANIFEST_FIELDS, suggest_manifest_mapping
+
+    result = _get(job_id)
+    columns = [p.name for p in result.profiles]
+    return {
+        "columns": columns,
+        "fields": [
+            {"key": key, "label": label, "header": header}
+            for key, label, header in MANIFEST_FIELDS
+        ],
+        "suggestion": suggest_manifest_mapping(columns),
+    }
+
+
+@app.post("/api/jobs/{job_id}/manifest-export")
+def manifest_export(
+    job_id: str,
+    mapping: str = Form(...),   # JSON: {manifest_field_key: column_or_empty}
+):
+    """Build and return a draft Merritt manifest as a UTF-8 CSV."""
+    from app.merritt_manifest import build_manifest_csv
+
+    result = _get(job_id)
+    if result.dataframe is None:
+        raise HTTPException(409, "This analysis has no stored data; re-run the analysis.")
+    try:
+        parsed_mapping = json.loads(mapping)
+    except json.JSONDecodeError:
+        raise HTTPException(400, "Mapping was not valid.")
+    try:
+        csv_bytes, summary = build_manifest_csv(result.dataframe, parsed_mapping)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+
+    import urllib.parse
+
+    summary_header = urllib.parse.quote(json.dumps(summary))
+    return Response(
+        content=csv_bytes,
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": 'attachment; filename="merritt_manifest.csv"',
+            "X-Export-Summary": summary_header,
+        },
+    )
+
+
 # ---- Spreadsheet merge (master + new -> merged) ------------------------------
 
 # Separate in-process cache for merge jobs (holds MergeResult).

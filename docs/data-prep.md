@@ -92,6 +92,25 @@ columns, the 15 elements, and the suggested mapping; `POST /api/jobs/{id}/dc-exp
 takes the mapping (JSON), the filename column, and a split-values flag, and
 returns the ZIP. Multiple columns may map to the same element.
 
+## Draft Merritt manifest export
+
+Below the Dublin Core card, **Export draft Merritt manifest** writes a UTF-8 CSV
+with one row per object and the exact headers Merritt expects, in order:
+
+    nfo:fileName, mrt:localIdentifier, mrt:creator, mrt:title, mrt:date
+
+Five dropdowns map each manifest field to a spreadsheet column (name-based best
+guess pre-filled; the filename field prefers a column like "Primary File Name"
+while a bare "Filename" is guessed for the local identifier). When a cell holds
+several values separated by `|`, **only the first value** is used, since each
+manifest field takes one value. Rows where every mapped field is empty are
+skipped.
+
+Code: `app/merritt_manifest.py` (framework-free, tested in
+`tests/test_merritt_manifest.py`). API: `GET /api/jobs/{id}/manifest-mapping`
+returns the columns, the field definitions, and the suggested mapping;
+`POST /api/jobs/{id}/manifest-export` takes the mapping (JSON) and returns the CSV.
+
 ## Google Sheets setup
 
 OAuth is **read-only** by design. To enable it, create a Google Cloud project,

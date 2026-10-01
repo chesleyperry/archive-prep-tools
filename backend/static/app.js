@@ -149,9 +149,18 @@ function render(d) {
         XML file per row as a ZIP.</p>
       <div id="dcMapping" class="muted">Loading columns…</div>
     </div>
+
+    <div class="card" id="manifestCard">
+      <h3>Export draft Merritt manifest</h3>
+      <p class="muted">Pick which column feeds each manifest field, then export a
+        UTF-8 CSV with one row per object. If a cell has several values separated
+        by <code>|</code>, only the first is used.</p>
+      <div id="manifestMapping" class="muted">Loading columns…</div>
+    </div>
   `;
 
   loadDcMapping(d.job_id);
+  loadManifestMapping(d.job_id);
 }
 
 // ---- Dublin Core export -----------------------------------------------------
@@ -266,6 +275,109 @@ async function exportDc() {
         if (s.renamed_collisions) extras.push(`${s.renamed_collisions} duplicate name(s) renamed`);
         if (s.skipped_empty_rows) extras.push(`${s.skipped_empty_rows} empty row(s) skipped`);
         msg = `Done — ${s.file_count} XML file(s) in the ZIP.` + (extras.length ? " " + extras.join("; ") + "." : "");
+      }
+    } catch (_) {}
+    status.textContent = msg;
+  } catch (e) {
+    status.innerHTML = `<span class="err-box">${esc(e.message)}</span>`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ---- Merritt manifest export ------------------------------------------------
+
+let MANIFEST_JOB_ID = null;
+
+async function loadManifestMapping(jobId) {
+  MANIFEST_JOB_ID = jobId;
+  try {
+    const res = await fetch(`/api/jobs/${jobId}/manifest-mapping`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Could not load columns");
+    renderManifestMapping(data);
+  } catch (e) {
+    $("manifestMapping").innerHTML = `<span class="err-box">${esc(e.message)}</span>`;
+  }
+}
+
+function renderManifestMapping(data) {
+  const { columns, fields, suggestion } = data;
+  const colOptions = (selected) =>
+    [`<option value="">— none —</option>`]
+      .concat(
+        columns.map(
+          (col) =>
+            `<option value="${esc(col)}"${col === selected ? " selected" : ""}>${esc(col)}</option>`
+        )
+      )
+      .join("");
+
+  const rows = fields
+    .map(
+      (f) => `<tr>
+        <td>${esc(f.label)}<br><code>${esc(f.header)}</code></td>
+        <td><select class="mfSel" data-key="${esc(f.key)}">${colOptions(suggestion[f.key] || "")}</select></td>
+      </tr>`
+    )
+    .join("");
+
+  $("manifestMapping").innerHTML = `
+    <table style="margin-bottom:16px;max-width:620px">
+      <thead><tr><th>Manifest field</th><th>Spreadsheet column</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div>
+      <button id="manifestExportBtn">Export Merritt manifest (CSV)</button>
+      <span id="manifestStatus" class="muted"></span>
+    </div>
+  `;
+
+  $("manifestExportBtn").addEventListener("click", exportManifest);
+}
+
+async function exportManifest() {
+  const btn = $("manifestExportBtn");
+  const status = $("manifestStatus");
+  const mapping = {};
+  document.querySelectorAll(".mfSel").forEach((sel) => {
+    mapping[sel.getAttribute("data-key")] = sel.value;
+  });
+  if (!Object.values(mapping).some((v) => v)) {
+    status.innerHTML = `<span class="err-box">Pick a column for at least one manifest field first.</span>`;
+    return;
+  }
+
+  btn.disabled = true;
+  status.textContent = "Building manifest…";
+  try {
+    const form = new FormData();
+    form.append("mapping", JSON.stringify(mapping));
+    const res = await fetch(`/api/jobs/${MANIFEST_JOB_ID}/manifest-export`, {
+      method: "POST",
+      body: form,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Export failed");
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "merritt_manifest.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    let msg = "Done — your manifest is downloading.";
+    try {
+      const raw = res.headers.get("X-Export-Summary");
+      if (raw) {
+        const s = JSON.parse(decodeURIComponent(raw));
+        msg = `Done — ${s.row_count} object row(s) in the manifest.`;
+        if (s.skipped_empty_rows) msg += ` ${s.skipped_empty_rows} empty row(s) skipped.`;
       }
     } catch (_) {}
     status.textContent = msg;
