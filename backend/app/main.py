@@ -7,6 +7,7 @@ re-uploading. (Swap this for Redis/disk if you later want persistence.)
 """
 from __future__ import annotations
 
+import json
 import uuid
 from pathlib import Path
 
@@ -111,6 +112,63 @@ def download_cleaned(job_id: str):
         content=result.cleaned_csv,
         media_type="text/csv",
         headers={"Content-Disposition": 'attachment; filename="cleaned.csv"'},
+    )
+
+
+# ---- Dublin Core XML export --------------------------------------------------
+
+@app.get("/api/jobs/{job_id}/dc-mapping")
+def dc_mapping_suggestion(job_id: str):
+    """Return the columns, a suggested column->DC-element mapping, and the full
+    list of Dublin Core elements, for the mapping screen."""
+    from app.dublin_core import DC_ELEMENTS, suggest_mapping
+
+    result = _get(job_id)
+    columns = [p.name for p in result.profiles]
+    return {
+        "columns": columns,
+        "elements": DC_ELEMENTS,
+        "suggestion": suggest_mapping(columns),
+    }
+
+
+@app.post("/api/jobs/{job_id}/dc-export")
+def dc_export(
+    job_id: str,
+    mapping: str = Form(...),           # JSON: {column: dc_element_or_empty}
+    filename_column: str = Form(...),
+    split_values: bool = Form(default=True),
+):
+    """Build and return a ZIP of one Dublin Core XML file per row."""
+    from app.dublin_core import build_dc_zip
+
+    result = _get(job_id)
+    if result.dataframe is None:
+        raise HTTPException(409, "This analysis has no stored data; re-run the analysis.")
+    try:
+        parsed_mapping = json.loads(mapping)
+    except json.JSONDecodeError:
+        raise HTTPException(400, "Mapping was not valid.")
+    try:
+        zip_bytes, summary = build_dc_zip(
+            result.dataframe,
+            parsed_mapping,
+            filename_column,
+            split=split_values,
+        )
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+
+    import urllib.parse
+
+    summary_header = urllib.parse.quote(json.dumps(summary.to_dict()))
+    return Response(
+        content=zip_bytes,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": 'attachment; filename="dublin_core_xml.zip"',
+            "X-Export-Summary": summary_header,
+        },
     )
 
 

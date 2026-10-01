@@ -141,5 +141,137 @@ function render(d) {
           : '<div class="muted">No duplicates detected.</div>'
       }
     </div>
+
+    <div class="card" id="dcCard">
+      <h3>Export to Dublin Core XML</h3>
+      <p class="muted">Match each column to a Dublin Core field (or leave it as
+        <em>— skip —</em>), choose which column names each file, then export one
+        XML file per row as a ZIP.</p>
+      <div id="dcMapping" class="muted">Loading columns…</div>
+    </div>
   `;
+
+  loadDcMapping(d.job_id);
+}
+
+// ---- Dublin Core export -----------------------------------------------------
+
+let DC_JOB_ID = null;
+
+async function loadDcMapping(jobId) {
+  DC_JOB_ID = jobId;
+  try {
+    const res = await fetch(`/api/jobs/${jobId}/dc-mapping`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Could not load columns");
+    renderDcMapping(data);
+  } catch (e) {
+    $("dcMapping").innerHTML = `<span class="err-box">${esc(e.message)}</span>`;
+  }
+}
+
+function renderDcMapping(data) {
+  const { columns, elements, suggestion } = data;
+  const options = (selected) =>
+    [`<option value="">— skip —</option>`]
+      .concat(
+        elements.map(
+          (el) =>
+            `<option value="${esc(el)}"${el === selected ? " selected" : ""}>${esc(el)}</option>`
+        )
+      )
+      .join("");
+
+  const rows = columns
+    .map(
+      (col) => `<tr>
+        <td><code>${esc(col)}</code></td>
+        <td><select class="dcSel" data-col="${esc(col)}">${options(suggestion[col] || "")}</select></td>
+      </tr>`
+    )
+    .join("");
+
+  const fileOptions = columns
+    .map((col) => `<option value="${esc(col)}">${esc(col)}</option>`)
+    .join("");
+
+  $("dcMapping").innerHTML = `
+    <table style="margin-bottom:16px">
+      <thead><tr><th>Spreadsheet column</th><th>Dublin Core field</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="row" style="align-items:flex-end">
+      <div style="max-width:320px">
+        <label>Which column should name each XML file?</label>
+        <select id="dcFilename" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:#fff">${fileOptions}</select>
+      </div>
+    </div>
+    <div style="margin-top:16px">
+      <button id="dcExportBtn">Export XML (ZIP)</button>
+      <span id="dcStatus" class="muted"></span>
+    </div>
+  `;
+
+  $("dcExportBtn").addEventListener("click", exportDc);
+}
+
+async function exportDc() {
+  const btn = $("dcExportBtn");
+  const status = $("dcStatus");
+  const mapping = {};
+  document.querySelectorAll(".dcSel").forEach((sel) => {
+    mapping[sel.getAttribute("data-col")] = sel.value;
+  });
+  const anyMapped = Object.values(mapping).some((v) => v);
+  if (!anyMapped) {
+    status.innerHTML = `<span class="err-box">Map at least one column to a Dublin Core field first.</span>`;
+    return;
+  }
+  const filenameColumn = $("dcFilename").value;
+
+  btn.disabled = true;
+  status.textContent = "Building XML files…";
+  try {
+    const form = new FormData();
+    form.append("mapping", JSON.stringify(mapping));
+    form.append("filename_column", filenameColumn);
+    form.append("split_values", "true");
+    const res = await fetch(`/api/jobs/${DC_JOB_ID}/dc-export`, {
+      method: "POST",
+      body: form,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Export failed");
+    }
+    // trigger the ZIP download
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "dublin_core_xml.zip";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    // show a short summary from the response header
+    let msg = "Done — your ZIP is downloading.";
+    try {
+      const raw = res.headers.get("X-Export-Summary");
+      if (raw) {
+        const s = JSON.parse(decodeURIComponent(raw));
+        const extras = [];
+        if (s.blank_filenames) extras.push(`${s.blank_filenames} row(s) had no filename value (named row-N)`);
+        if (s.renamed_collisions) extras.push(`${s.renamed_collisions} duplicate name(s) renamed`);
+        if (s.skipped_empty_rows) extras.push(`${s.skipped_empty_rows} empty row(s) skipped`);
+        msg = `Done — ${s.file_count} XML file(s) in the ZIP.` + (extras.length ? " " + extras.join("; ") + "." : "");
+      }
+    } catch (_) {}
+    status.textContent = msg;
+  } catch (e) {
+    status.innerHTML = `<span class="err-box">${esc(e.message)}</span>`;
+  } finally {
+    btn.disabled = false;
+  }
 }
