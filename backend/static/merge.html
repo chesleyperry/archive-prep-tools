@@ -65,19 +65,49 @@
     </div>
 
     <div class="card">
-      <div class="row">
-        <div>
-          <label>Master spreadsheet (CSV)</label>
-          <input type="file" id="master" accept=".csv" />
-        </div>
-        <div>
-          <label>New spreadsheet to merge in (CSV)</label>
-          <input type="file" id="addition" accept=".csv" />
+      <label style="margin-bottom:10px">Choose how to provide your spreadsheets:</label>
+      <div style="display:flex;gap:18px;margin-bottom:16px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--ink);margin:0;cursor:pointer">
+          <input type="radio" name="source" value="files" checked /> Upload CSV files
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--ink);margin:0;cursor:pointer">
+          <input type="radio" name="source" value="sheets" /> Google Sheet links
+        </label>
+      </div>
+
+      <div id="filesInputs">
+        <div class="row">
+          <div>
+            <label>Master spreadsheet (CSV)</label>
+            <input type="file" id="master" accept=".csv" />
+          </div>
+          <div>
+            <label>New spreadsheet to merge in (CSV)</label>
+            <input type="file" id="addition" accept=".csv" />
+          </div>
         </div>
       </div>
+
+      <div id="sheetsInputs" class="hidden">
+        <div class="row">
+          <div>
+            <label>Master Google Sheet link</label>
+            <input type="text" id="masterUrl" placeholder="https://docs.google.com/spreadsheets/d/…" />
+          </div>
+          <div>
+            <label>New Google Sheet link (to merge in)</label>
+            <input type="text" id="additionUrl" placeholder="https://docs.google.com/spreadsheets/d/…" />
+          </div>
+        </div>
+        <p class="muted" style="font-size:13px;margin:8px 0 0">
+          Each sheet must be shared as <strong>“Anyone with the link → Viewer.”</strong>
+          The link reads the tab shown in the URL (after <code>#gid=</code>), or the first tab otherwise.
+        </p>
+      </div>
+
       <div style="margin-top:14px" class="row">
         <div>
-          <label>Key column(s) to match rows on (comma-separated, must exist in both files)</label>
+          <label>Key column(s) to match rows on (comma-separated, must exist in both sheets)</label>
           <input type="text" id="keyCols" placeholder="id   (or: accession_number)" />
         </div>
       </div>

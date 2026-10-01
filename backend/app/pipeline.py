@@ -27,6 +27,7 @@ class AnalysisResult:
     duplicate_groups: list[DuplicateGroup]
     readme_markdown: str
     cleaned_csv: bytes
+    dataframe: pd.DataFrame | None = None  # kept in memory for the XML export
 
     def to_dict(self) -> dict:
         return {
@@ -71,4 +72,5 @@ def analyze(
         duplicate_groups=duplicate_groups,
         readme_markdown=readme,
         cleaned_csv=to_csv_bytes(cleaned),
+        dataframe=df,
     )

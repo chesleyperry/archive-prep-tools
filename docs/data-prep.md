@@ -72,6 +72,26 @@ The runner, README, and API pick it up automatically. The planned LLM-based
 semantic check will subclass `Validator` the same way — it just calls a model
 inside `check()` instead of using pandas.
 
+## Dublin Core XML export
+
+After analyzing a spreadsheet, the results page offers **Export to Dublin Core
+XML**: one Simple Dublin Core (`oai_dc`) XML file per row, bundled into a ZIP.
+
+Workflow:
+1. Each column gets a dropdown mapping it to one of the 15 Dublin Core elements
+   (or *skip*). The tool pre-fills a best guess from the column name; you adjust.
+2. Pick which column names each file. Blank values fall back to `row-N`;
+   duplicate names get a `-1`/`-2` suffix so nothing is overwritten.
+3. Cells holding several values separated by `|` become repeated elements
+   (e.g. two `<dc:creator>`). Empty cells produce no tags; special characters
+   are XML-escaped.
+
+Code: `app/dublin_core.py` (framework-free, tested in
+`tests/test_dublin_core.py`). API: `GET /api/jobs/{id}/dc-mapping` returns the
+columns, the 15 elements, and the suggested mapping; `POST /api/jobs/{id}/dc-export`
+takes the mapping (JSON), the filename column, and a split-values flag, and
+returns the ZIP. Multiple columns may map to the same element.
+
 ## Google Sheets setup
 
 OAuth is **read-only** by design. To enable it, create a Google Cloud project,

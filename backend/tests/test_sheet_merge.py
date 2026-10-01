@@ -84,6 +84,21 @@ def test_report_and_csv_produced():
     assert "# Spreadsheet merge report" in r.report_markdown
 
 
+def test_blank_key_rows_are_added_not_dropped():
+    master = pd.DataFrame(
+        {"id": ["1", "2"], "name": ["Alice", "Bob"]}, dtype="string"
+    )
+    new = pd.DataFrame(
+        {"id": ["3", pd.NA, ""], "name": ["Carol", "NoID one", "NoID two"]},
+        dtype="string",
+    )
+    r = merge_sheets(master, new, ["id"])
+    # all 3 new rows added: id=3 (normal new) + 2 blank-key rows
+    assert r.rows_added == 3
+    assert r.merged_row_count == 5
+    assert any("blank key" in w for w in r.warnings)
+
+
 def test_missing_key_raises():
     try:
         merge_sheets(_master(), _new(), ["nonexistent"])

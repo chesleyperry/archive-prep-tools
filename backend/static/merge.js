@@ -8,30 +8,60 @@ const esc = (s) =>
 
 $("mergeBtn").addEventListener("click", doMerge);
 
+// Toggle between file-upload and Google-Sheet-link inputs.
+function currentSource() {
+  return document.querySelector('input[name="source"]:checked').value;
+}
+document.querySelectorAll('input[name="source"]').forEach((radio) =>
+  radio.addEventListener("change", () => {
+    const sheets = currentSource() === "sheets";
+    $("sheetsInputs").classList.toggle("hidden", !sheets);
+    $("filesInputs").classList.toggle("hidden", sheets);
+    $("status").textContent = "";
+  })
+);
+
 async function doMerge() {
   const btn = $("mergeBtn");
   const status = $("status");
-  const master = $("master").files[0];
-  const addition = $("addition").files[0];
   const keyCols = $("keyCols").value.trim();
+  const useSheets = currentSource() === "sheets";
 
-  if (!master || !addition) {
-    status.textContent = "Choose both a master file and a new file.";
-    return;
-  }
   if (!keyCols) {
     status.textContent = "Name at least one key column to match rows on.";
     return;
   }
 
+  const form = new FormData();
+  form.append("key_columns", keyCols);
+  let endpoint;
+
+  if (useSheets) {
+    const masterUrl = $("masterUrl").value.trim();
+    const additionUrl = $("additionUrl").value.trim();
+    if (!masterUrl || !additionUrl) {
+      status.textContent = "Paste both Google Sheet links.";
+      return;
+    }
+    form.append("master_url", masterUrl);
+    form.append("addition_url", additionUrl);
+    endpoint = "/api/merge/sheets";
+  } else {
+    const master = $("master").files[0];
+    const addition = $("addition").files[0];
+    if (!master || !addition) {
+      status.textContent = "Choose both a master file and a new file.";
+      return;
+    }
+    form.append("master", master);
+    form.append("addition", addition);
+    endpoint = "/api/merge/csv";
+  }
+
   btn.disabled = true;
   status.textContent = "Merging…";
   try {
-    const form = new FormData();
-    form.append("master", master);
-    form.append("addition", addition);
-    form.append("key_columns", keyCols);
-    const res = await fetch("/api/merge/csv", { method: "POST", body: form });
+    const res = await fetch(endpoint, { method: "POST", body: form });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || "Merge failed");
     render(data);
