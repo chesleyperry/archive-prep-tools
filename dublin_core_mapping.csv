@@ -1,0 +1,65 @@
+Metadata Property,Dublin Core Mapping
+title,dc:title
+title_alternative,dc:title
+creator,dc:creator
+creatorURL,dc:creator
+contributor,dc:contributor
+contributorURL,dc:contributor
+original_publisher,dc:source
+date_created_index,dc:date
+Date Created,dc:date
+form_genre,dc:format
+form_genreURL,dc:format
+DCMI Resource Type,dc:type
+Resource Type,dc:type
+type,dc:type
+typeURL,dc:type
+subject_name,dc:subject
+subject_nameURL,dc:subject
+Topics,dc:subject
+subject_topic,dc:subject
+subject_topicURL,dc:subject
+description,dc:description
+language,dc:language
+languageURL,dc:language
+harmful_content_statement,dc:description
+collection_title,dc:relation
+series,dc:relation
+sub_series,dc:relation
+Super Collection,dc:relation
+Collection Description,dc:description
+collection_description,dc:description
+related_resource,dc:relation
+Collection Guide,dc:relation
+scale,dc:description
+coordinates,dc:coverage
+subject_place,dc:subject
+Place,dc:subject
+subject_placeURL,dc:subject
+address,dc:description
+description_street,dc:description
+description_feature,dc:description
+date_of_situation_index,dc:date
+item_call_number,dc:source
+box_folder,dc:source
+extent,dc:extent
+Physical Description,dc:source
+physical_description,dc:source
+rights_statement,dc:rights
+rights_holder,dc:rightsHolder
+Copyright Holder,dc:rightsHolder
+rights_status,dc:rights
+rights_statusURL,dc:rights
+Rights Status,dc:rights
+access_rights,dc:rights
+Access Rights,dc:rights
+donor_provenance,dc:provenance
+collection_call_number,dc:source
+accession_number,dc:source
+Primary File Name,dc:source
+primary_filename,dc:source
+Item Call Number,dc:identifier
+filename,dc:identifier
+Accession Number,dc:identifier
+publisher,dc:publisher
+Primary File Name,dc:source

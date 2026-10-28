@@ -8,6 +8,7 @@ runs **locally on your own Mac** — your files and audio never leave the machin
 | **AV File Access Preparation** | Web | Transcribes a folder of audio/video, writes a short description and transcript (SRT/RTF) per file, extracts names/places/titles, and builds one enriched metadata CSV. |
 | **Data-Prep Tool** | Web | Checks a CSV or Google Sheet for quality problems, plans duplicate merges, and generates a README + data dictionary. |
 | **Merritt Harvester** | Command line | Pulls collection metadata from a private Merritt collection into CSV/JSON. |
+| **Item Folder Builder** | Command line | Sorts modified TIFFs, original TIFFs and derivative JPEGs into one folder per item and adds a Dublin Core XML file made from a metadata spreadsheet. |
 
 The two web tools share one web server and one home page; the Merritt harvester is
 a Terminal script.
@@ -112,6 +113,33 @@ It will ask you to paste a Merritt session cookie. To get it:
 3. Copy the **value** of the cookie named `_mrt-dash_session` and paste it when
    prompted (the prompt hides what you type). Cookies expire, so grab a fresh one
    each session.
+
+### Item Folder Builder
+
+This one also runs in Terminal. It needs only the Python that comes with the Mac:
+
+```bash
+/usr/bin/python3 prepare_items.py
+```
+
+It asks for the modified-TIFF folder, the original-TIFF folder, the derivative-JPEG
+folder, your metadata spreadsheet (saved as CSV) and the folder where the new
+folders should go. If a file set adds a tag to the item name (for example
+`name_orig.tif`), it also asks for that tag. Then, for each item, it:
+
+1. creates a folder named after the item,
+2. moves the three image files into it, and
+3. writes `itemname.xml` in Dublin Core format from that item's spreadsheet row.
+
+Column A of the spreadsheet is the item name. The other column headings are
+translated to Dublin Core using [`dublin_core_mapping.csv`](dublin_core_mapping.csv),
+which must stay next to the script. Before changing anything it prints a report of
+problems (missing files, names that don't match, spreadsheet columns not in the
+mapping) and waits for you to type `yes`; items with problems are left alone.
+
+Two smaller scripts do the same job in separate steps:
+`sort_into_folders.py` (TIFF + JPEG into folders) and `spreadsheet_to_xml.py`
+(spreadsheet rows to XML files in existing folders).
 
 ---
 
