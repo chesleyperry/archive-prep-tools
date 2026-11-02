@@ -8,6 +8,7 @@ runs **locally on your own Mac** — your files and audio never leave the machin
 | **AV File Access Preparation** | Web | Transcribes a folder of audio/video, writes a short description and transcript (SRT/RTF) per file, extracts names/places/titles, and builds one enriched metadata CSV. |
 | **Data-Prep Tool** | Web | Checks a CSV or Google Sheet for quality problems, plans duplicate merges, and generates a README + data dictionary. |
 | **Merritt Harvester** | Command line | Pulls collection metadata from a private Merritt collection into CSV/JSON. |
+| **Merritt File Summary** | Command line | Summarizes a harvested collection: per-object producer file counts, total sizes, file types, and content dates. |
 | **Item Folder Builder** | Command line | Sorts modified TIFFs, original TIFFs and derivative JPEGs into one folder per item and adds a Dublin Core XML file made from a metadata spreadsheet. |
 
 The two web tools share one web server and one home page; the Merritt harvester is
@@ -113,6 +114,49 @@ It will ask you to paste a Merritt session cookie. To get it:
 3. Copy the **value** of the cookie named `_mrt-dash_session` and paste it when
    prompted (the prompt hides what you type). Cookies expire, so grab a fresh one
    each session.
+
+The harvester saves its results into an `outputs/` folder (one `.csv` and one
+`.json` per collection).
+
+### Merritt File Summary
+
+A companion to the Merritt Harvester. After you've harvested a collection, this
+makes a one-row-per-object summary of its **producer files** (the content you
+deposited, not Merritt's own system files). In a Terminal window:
+
+```bash
+.venv/bin/python merritt_file_summary.py
+```
+
+Then:
+
+1. It lists the harvest `.json` files in your `outputs/` folder — type the
+   **number** of the one you want to summarize.
+2. It asks whether to add each object's **content date** (for example `1967`):
+   - Press **Enter** (yes) to include it. The date is looked up on Merritt, so it
+     asks for your `_mrt-dash_session` cookie (same as the harvester above) and
+     does one quick lookup per object — slower on large collections.
+   - Type **n** to skip the date for a fast, offline run (the date column is left
+     blank).
+
+It saves a new spreadsheet next to the JSON, named `<name>_file_summary.csv`, with
+one row per object:
+
+| Column | Meaning |
+| --- | --- |
+| `bare_ark` | the object's identifier |
+| `local_identifier` | your local ID for the item |
+| `title` | the object title |
+| `date` | the content's date (blank unless you included it) |
+| `author` | the author, if recorded |
+| `producer_file_count` | how many producer files the object has |
+| `producer_total_bytes` | the producer files' sizes added up, in bytes |
+| `permanent link` | the object's stable web address |
+| `producer_file_types` | the kinds of files present (e.g. audio, image) |
+| `producer_total_readable` | the same total size shown as KB / MB / GB |
+
+If your login expires partway through a long run, it stops cleanly and keeps what
+it already found — just run it again with a fresh cookie.
 
 ### Item Folder Builder
 
